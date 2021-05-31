@@ -152,7 +152,7 @@ Thumbs.db
 # custom created folder
 /video
 # Weightfile 
-.weights
+*.weights
 
 
 # End of https://www.toptal.com/developers/gitignore/api/python
