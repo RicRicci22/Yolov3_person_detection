@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 # Variables declaration
-TEST_VIDEO_FILE_NAME = "video/Zona 15.mp4"
+TEST_VIDEO_FILE_NAME = "video/Zona 16.mp4"
 MIN_CONFIDENCE_THRESHOLD = 0.5
 SAVE_OUTPUT_VIDEO = True
 OUTPUT_VIDEO_FPS = 30
@@ -30,6 +30,10 @@ colors = np.random.randint(0, 255, size=(len(classNames), 3), dtype='uint8')
 
 vc = cv2.VideoCapture(TEST_VIDEO_FILE_NAME)
 
+# To get video FPS
+# fps = vc.get(cv2.CAP_PROP_FPS)
+# print(fps)
+
 net = cv2.dnn.readNet("model/yolov4.weights", "model/yolov4.cfg")
 # net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
 # net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
@@ -42,6 +46,9 @@ skip = 0
 writer = 0
 
 objectCount = 0
+
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+
 while cv2.waitKey(1) < 1:
     (grabbed, frame) = vc.read()
     if not grabbed:
@@ -51,7 +58,7 @@ while cv2.waitKey(1) < 1:
 
     if SAVE_OUTPUT_VIDEO and writer == 0:
         frameHeight, frameWidth, _ = frame.shape
-        writer = cv2.VideoWriter('video/output.avi', cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), OUTPUT_VIDEO_FPS,
+        writer = cv2.VideoWriter('video/zona_16_processed.mp4', fourcc, OUTPUT_VIDEO_FPS,
                                  (frameWidth, frameHeight))
 
     if SKIP_FRAMES_TO_SPEEDUP:
@@ -60,7 +67,8 @@ while cv2.waitKey(1) < 1:
         else:
             skip += 1
             continue
-
+    
+    # This function has parameters (frame, confidence_threshold, NMS_threshold)
     classes, scores, boxes = model.detect(frame, MIN_CONFIDENCE_THRESHOLD, 0.4)
 
     for (id, score, box) in zip(classes, scores, boxes):
