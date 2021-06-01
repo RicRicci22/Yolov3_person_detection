@@ -8,3 +8,8 @@ STEPS:
 - Fine tune yolov4 using VisDrone/sardCorr1 datasets and repeat the processing on the video performing the same tests to compare them
 - Reproduce the results of the paper () using the fine tuned yolov4
 - Perform the same steps as above but using a two-stages approach
+
+Substeps: 
+- Improve the video output -> it takes too much space now
+- Try with different resolutions and frame skip
+- Write the time it takes to process a frame
