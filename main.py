@@ -14,7 +14,9 @@ desiredClasses = ["person"]
 
 SAVE_DETECTED_OBJECT_IMAGES = False
 
-# Creating net 
+# Creating net
 model = yolov4.setup_network(416,416,1/255)
-# Performing detection on video 
+# Performing detection on video
 yolov4.detect_in_video_with_yolov4(model,TEST_VIDEO_FILE_NAME, 30, MIN_CONFIDENCE_THRESHOLD, 0.4, desiredClasses, True, "zona_16_trial")
+
+# Just a comment to try git bash in push
