@@ -13,3 +13,15 @@ Substeps:
 - Improve the video output -> it takes too much space now
 - Try with different resolutions and frame skip
 - Write the time it takes to process a frame
+
+
+UPDATE 14/06/2021
+I'm currently trying to set up GPU to use yolov4 following this guide https://dsbyprateekg.blogspot.com/2020/05/how-to-install-and-compile-yolo-v4-with.html.
+First step is to install CUDA 10.1 and cudnn 7.6.4 on the machine. 
+The machine has a TESLA K40c GPU. 
+Now I'm installing CUDA 10.1, let's see if after that it's needed to edit the system variables. After that I will look inside the installing of CuDNN, but on the pc of farid there are already two folders containing CuDNN, let's see if the version is compatible, otherwise I will have to remove it and install the correct one.
+******
+Installed CUDA 10.1
+******
+Installed CuDNN 7.6.5 for CUDA 10.1
+******
