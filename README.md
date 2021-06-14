@@ -17,6 +17,8 @@ Substeps:
 
 UPDATE 14/06/2021
 
+*Darknet installation*
+
 I'm currently trying to set up GPU to use yolov4 following this guide https://dsbyprateekg.blogspot.com/2020/05/how-to-install-and-compile-yolo-v4-with.html.
 First step is to install CUDA 10.1 and cudnn 7.6.4 on the machine. 
 The machine has a TESLA K40c GPU. 
@@ -29,3 +31,15 @@ Installed CuDNN 7.6.5 for CUDA 10.1
 
 I deleted CUDA_VERSION_10.0 PATH from environment paths, now it seems to compile darknet correctly using vcpkg. 
 The idea is to find a way to train the custom yolov4 on google colab, and then use the weights to perform detection on the laboratory machine. In this way we can have a realistic sense of performance, as well as learning how to compile yolo on the drone.
+
+******
+Installed and compiled darknet using command .\vcpkg install darknet[full]:x64-windows.
+******
+Darknet worked on a sample input video. Average FPS 7.1.
+
+14.50
+*Open-cv dnn module with GPU acceleration installation*
+
+I want to try with a different approach, using open-cv dnn library, to see if there are changes in the FPS. Also this can be useful since the ease of use of visual studio make the entire process more straighforward to apply! Let's try with this walktrough https://medium.com/analytics-vidhya/object-detection-on-public-webcam-with-opencv-and-yolov4-9ed51d5896a9
+ 
+
