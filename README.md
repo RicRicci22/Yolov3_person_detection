@@ -16,6 +16,7 @@ Substeps:
 
 
 UPDATE 14/06/2021
+
 I'm currently trying to set up GPU to use yolov4 following this guide https://dsbyprateekg.blogspot.com/2020/05/how-to-install-and-compile-yolo-v4-with.html.
 First step is to install CUDA 10.1 and cudnn 7.6.4 on the machine. 
 The machine has a TESLA K40c GPU. 
@@ -25,3 +26,6 @@ Installed CUDA 10.1
 ******
 Installed CuDNN 7.6.5 for CUDA 10.1
 ******
+
+I deleted CUDA_VERSION_10.0 PATH from environment paths, now it seems to compile darknet correctly using vcpkg. 
+The idea is to find a way to train the custom yolov4 on google colab, and then use the weights to perform detection on the laboratory machine. In this way we can have a realistic sense of performance, as well as learning how to compile yolo on the drone.
