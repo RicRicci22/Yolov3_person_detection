@@ -41,5 +41,16 @@ Darknet worked on a sample input video. Average FPS 7.1.
 *Open-cv dnn module with GPU acceleration installation*
 
 I want to try with a different approach, using open-cv dnn library, to see if there are changes in the FPS. Also this can be useful since the ease of use of visual studio make the entire process more straighforward to apply! Let's try with this walktrough https://medium.com/analytics-vidhya/object-detection-on-public-webcam-with-opencv-and-yolov4-9ed51d5896a9
- 
+
+UPDATE 18/06/2021
+I managed to have the lab machine to process a video using GPU! With GPU it reaches 4 FPS on "busy" images, while a little more on not so busy images! This I think is due to the NMS that have to deals with all the bounding box proposals. 
+The network is still a little slow, but it's an improvement cause it allows me to train on a custom dataset now!
+The implementation followed the guide of https://github.com/roboflow-ai/pytorch-YOLOv4 repository and a youtube video https://www.youtube.com/watch?v=9hVgyeI4g4o&t=1154s. 
+It uses pytorch 1.4.0, but since this version does not support 3.5 compute capability GPUs I used pytorch 1.2.0 and it worked just fine.
+I will try this afterwards, for now the next steps are 
+- video with decreasing confidence values (0.5,0.4,0.3,0.2,0.1). 
+- only detect people.
+- try to use pytorch 1.4.0 in some way to compare the speed. 
+- Try with different input sizes 
+- find a way to evaluate the performance (maybe on visdrone or SARD datasets is possible) 
 
