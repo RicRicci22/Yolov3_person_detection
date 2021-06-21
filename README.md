@@ -59,6 +59,7 @@ UPDATE 21/06/2021
 
 Made two functions, one to process all the videos in one folder, the other to process a video with different confidence thresholds from 0.5 to 0.1. The FPS are decreasing for decreasing confidence threshold, due to the Non Maximum Suppression algorithm. 
 Next step are: 
+- [x] find a way to compress video -> done using moviepy
 - [ ] understand how a dataset is arranged 
 - [ ] train yolov4 on a custom dataset (VISDRONE) 
 - [ ] evaluate performance after training (quantitatively on the videos and qualitatively on VISDRONE TEST SET)
