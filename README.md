@@ -51,7 +51,7 @@ It uses pytorch 1.4.0, but since this version does not support 3.5 compute capab
 I will try this afterwards, for now the next steps are 
 - [x] video with decreasing confidence values (0.5,0.4,0.3,0.2,0.1). 
 - [x] only detect people.
-- [ ] try to use pytorch 1.4.0 in some way to compare the speed. 
+- [x] try to use pytorch 1.4.0 in some way to compare the speed. 
 - [ ] try with different input sizes 
 - [ ] find a way to evaluate the performance (maybe on visdrone or SARD datasets is possible) 
 
@@ -61,7 +61,12 @@ Made two functions, one to process all the videos in one folder, the other to pr
 Next step are: 
 - [x] find a way to compress video -> done using moviepy
 - [x] understand how a dataset is arranged -> VISDRONE IS ARRANGED AS <bbox_left>,<bbox_top>,<bbox_width>,<bbox_height>,<score>,<object_category>,<truncation>,<occlusion>
-- [ ] train yolov4 on a custom dataset (VISDRONE) 
+- [x] train yolov4 on a custom dataset (VISDRONE) 
 - [ ] evaluate performance after training (quantitatively on the videos and qualitatively on VISDRONE TEST SET)
 
-
+UPDATE 21/07/2021
+Here I am after a month! I made some progress including finetuning on visdrone and formatting visdrone and sard dataset. Still I need to try finetuning on Sard alone and compare performances.
+Next steps are: 
+  - [ ] parse corr1 dataset into the format for yolov4 pytorch
+  - [ ] try finetuning using only sard/corr dataset and compare performance
+  - [ ] find a way to compare perfomances (maybe on sard/corr) given that it is more similar to my scenario 
