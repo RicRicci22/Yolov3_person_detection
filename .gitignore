@@ -151,8 +151,15 @@ Thumbs.db
 
 # custom created folder
 /video
-# Weightfile 
+# weights and Weightfiles
 *.weights
+weight/
+trained_weights/
 
+# log files
+log/
+
+# VScode project settings
+**/.vscode/
 
 # End of https://www.toptal.com/developers/gitignore/api/python
