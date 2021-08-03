@@ -17,6 +17,8 @@
 from tool.utils import *
 from tool.darknet2pytorch import Darknet
 import argparse
+import metrics
+import format_dataset
 
 """hyper parameters"""
 use_cuda = True
@@ -110,37 +112,42 @@ def detect_in_images(dataset_input,cfgfile,weightfile,confidence):
         m.cuda()
         print('GPU activated!')
     for filename in os.listdir(dataset_input):
-        print('Processing image '+filename+'\n')
         f = os.path.join(dataset_input, filename)
         if(os.path.isfile(f)):
-            # The file is an image
-            detections.write(filename)
-            img = cv2.imread(os.path.join(dataset_input,filename))
-            original_height, original_width, _ = img.shape
-            sized = cv2.resize(img, (width, height))
-            sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
-            # perform detection
-            boxes = do_detect(m, sized, confidence, num_classes, 0.4, use_cuda)
-            for box in boxes:
-                if(box[6]==0):
-                    x1 = int((box[0] - box[2] / 2.0) * original_width)
-                    y1 = int((box[1] - box[3] / 2.0) * original_height)
-                    x2 = int((box[0] + box[2] / 2.0) * original_width)
-                    y2 = int((box[1] + box[3] / 2.0) * original_height)
-                    # check if negative
-                    if(x1<0):
-                        x1=0
-                    if(y1<0):
-                        y1=0
-                    if(x2<0):
-                        x2=0
-                    if(y2<0):
-                        y2=0
-                    obj_class = box[6] #0 means person
-                    print(x1,y1,x2,y2,obj_class)
-                    # Insert prediction
-                    detections.write(' '+str(x1)+','+str(y1)+','+str(x2)+','+str(y2)+','+str(obj_class))
-            detections.write('\n')
+            # The file is an image??
+            if(filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif'))):
+                print('Processing image '+filename)
+                img = cv2.imread(os.path.join(dataset_input,filename))
+                original_height, original_width, _ = img.shape
+                sized = cv2.resize(img, (width, height))
+                sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
+                # perform detection
+                boxes = do_detect(m, sized, confidence, num_classes, 0.4, use_cuda)
+                # Process boxes to keep only people
+                new_boxes = [box for box in boxes if box[6]==0]
+                if(len(new_boxes)!=0):
+                    detections.write(filename)
+                for box in boxes:
+                    if(box[6]==0):
+                        x1 = int((box[0] - box[2] / 2.0) * original_width)
+                        y1 = int((box[1] - box[3] / 2.0) * original_height)
+                        x2 = int((box[0] + box[2] / 2.0) * original_width)
+                        y2 = int((box[1] + box[3] / 2.0) * original_height)
+                        # check if negative
+                        if(x1<0):
+                            x1=0
+                        if(y1<0):
+                            y1=0
+                        if(x2<0):
+                            x2=0
+                        if(y2<0):
+                            y2=0
+                        obj_class = box[6] #0 means person
+                        #print(x1,y1,x2,y2,obj_class)
+                        # Insert prediction
+                        detections.write(' '+str(x1)+','+str(y1)+','+str(x2)+','+str(y2)+','+str(obj_class))
+                if(len(new_boxes)!=0):
+                    detections.write('\n')
 
 
 def process_videos_different_confidence(cfgfile, weightfile, video_path, confidences):
@@ -253,5 +260,35 @@ if __name__ == '__main__':
     #process_videos_different_confidence('cfg/yolov4.cfg','weight/yolov4.weights',r'C:\Users\farid.melgani\Desktop\riccimasterthesis\video\Zona 16.mp4',[0.2,0.3,0.4,0.5])
     #compress_video('C:/Users/farid.melgani/Desktop/riccimasterthesis/video/result_0.4_Zona 16.mp4','C:/Users/farid.melgani/Desktop/riccimasterthesis/video/result_0.4_Zona 16_compressed.mp4')
     #detect_in_images(r'C:\Users\farid.melgani\Desktop\riccimasterthesis\visdrone\test','cfg/yolov4.cfg','weight/yolov4.weights',0.5)
-    #detect('cfg/yolov4.cfg','weight/yolov4.weights',r'C:\Users\farid.melgani\Desktop\riccimasterthesis\pytorch-YOLOv4\data\0000006_00159_d_0000001.jpg')
-    print('hey')
+    # TRY METRICS WITH ONE IMAGE
+    #detect_in_images(r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test','cfg/yolov4.cfg','weight/yolov4.weights',0.5)
+    anno_path = r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test\annotations\_annotations.txt'
+    pred_path = r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test\_predictions.txt'
+
+    gtruth_dict = {}
+    pred_dict = {}
+
+    # Popolate gtruth_dict
+    anno_file = open(anno_path,'r')
+    for line in anno_file.readlines():
+        pieces = line.split(' ')
+        gtruth_dict[pieces[0]]=[]
+        for piece in pieces[1:]:
+            numbers = piece.split(',')
+            gtruth_dict[pieces[0]].append([int(number) for number in numbers])
+
+    # Popolate pred_dict
+    anno_file = open(pred_path,'r')
+    for line in anno_file.readlines():
+        pieces = line.split(' ')
+        pred_dict[pieces[0]]=[]
+        for piece in pieces[1:]:
+            numbers = piece.split(',')
+            pred_dict[pieces[0]].append([int(number) for number in numbers])
+
+    # TRY METRIC
+    precision, recall, f1 = metrics.precision_recall(gtruth_dict,pred_dict,0.5)
+
+    print('PRECISION: ',precision)
+    print('RECALL: ',recall)
+    print('F1 score: ', f1)

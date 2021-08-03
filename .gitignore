@@ -160,6 +160,9 @@ trained_weights/
 log/
 
 # VScode project settings
-**/.vscode/
+.vscode/
+
+# Datasets
+visdrone/
 
 # End of https://www.toptal.com/developers/gitignore/api/python

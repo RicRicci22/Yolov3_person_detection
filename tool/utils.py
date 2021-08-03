@@ -479,27 +479,5 @@ def compress_video(to_compress_path, compressed_path):
     os.remove(to_compress_path)
     os.rename(compressed_path,to_compress_path)
 
-def evaluate_IoU(coords_predicted, coords_ground_truth):
-    # Return the IoU value
-    # coords_predicted = [x1,y1,x2,y2] predicted
-    # coords_ground_truth = [x1,y1,x2,y2] ground truth
-    # GET THE INTERSECTION
-    x_left = max(coords_predicted[0],coords_ground_truth[0])
-    y_top = max(coords_predicted[1], coords_ground_truth[1])
-    x_right = min(coords_predicted[2], coords_ground_truth[2])
-    y_bottom = min(coords_predicted[3], coords_ground_truth[3])
-    # Asserting if there is overlap
-    if x_right < x_left or y_bottom < y_top:
-        return 0.0
-    intersection = (x_right-x_left)*(y_bottom-y_top)
-
-    area_predicted = (coords_predicted[2]-coords_predicted[0])*(coords_predicted[3]-coords_predicted[1])
-    area_gtruth = (coords_ground_truth[2]-coords_ground_truth[0])*(coords_ground_truth[3]-coords_ground_truth[1])
-
-    return (intersection)/(area_gtruth+area_predicted-intersection)
-
-#def precision_recall(conf_threshold,predicted,ground_truth):
-    # ground_truth = txt file with the ground truth annotations (same as annotations.txt)
-    # conf_threshold = txt file with predicted bounding boxes
 
 
