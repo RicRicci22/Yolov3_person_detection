@@ -58,6 +58,7 @@ I will try this afterwards, for now the next steps are
 UPDATE 21/06/2021
 
 Made two functions, one to process all the videos in one folder, the other to process a video with different confidence thresholds from 0.5 to 0.1. The FPS are decreasing for decreasing confidence threshold, due to the Non Maximum Suppression algorithm. 
+
 Next step are: 
 - [x] find a way to compress video -> done using moviepy
 - [x] understand how a dataset is arranged -> VISDRONE IS ARRANGED AS <bbox_left>,<bbox_top>,<bbox_width>,<bbox_height>,<score>,<object_category>,<truncation>,<occlusion>
@@ -65,8 +66,18 @@ Next step are:
 - [ ] evaluate performance after training (quantitatively on the videos and qualitatively on VISDRONE TEST SET)
 
 UPDATE 21/07/2021
+  
 Here I am after a month! I made some progress including finetuning on visdrone and formatting visdrone and sard dataset. Still I need to try finetuning on Sard alone and compare performances.
+  
 Next steps are: 
-  - [ ] parse corr1 dataset into the format for yolov4 pytorch
+  - [x] parse corr1 dataset into the format for yolov4 pytorch
   - [ ] try finetuning using only sard/corr dataset and compare performance
   - [ ] find a way to compare perfomances (maybe on sard/corr) given that it is more similar to my scenario 
+
+UPDATE 03/08/2021
+ 
+I finished the last exam of the master on friday! :) Now head to the thesis! I made some metrics to evaluate the performance of the algorithm on a dataset. The function compute precision and recall for the predictions. This two values depends on the confidence threshold set during detection and the IoU threshold set in the function.
+Now, to plot a precision recall curve, the detection has to be performed multiple times with varying confidence threshold, plotting the precision and recall at each step.
+Now let's add the F1 calculation in the function, and let's look into something like average precision or other metrics. 
+  
+I'm currently tackling the problem of evaluating the performance of the algorithm, a point that I made several times in the past and never tackled ;)
