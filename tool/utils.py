@@ -469,15 +469,14 @@ def post_processing(img, conf_thresh, n_classes, nms_thresh, list_features_numpy
         print('-----------------------------------')
     return boxes
 
-def compress_video(to_compress_path, compressed_path):
+def compress_video(to_compress_path):
     import moviepy.editor as mp
     from moviepy.editor import vfx
 
     clip = mp.VideoFileClip(to_compress_path)
     clip_resized = clip.fx( vfx.resize, width = 1440)
-    clip_resized.write_videofile(compressed_path)
+    clip_resized.write_videofile(to_compress_path+'_compressed')
+    clip.close()
     os.remove(to_compress_path)
-    os.rename(compressed_path,to_compress_path)
-
-
+    os.rename(to_compress_path+'_compressed',to_compress_path)
 
