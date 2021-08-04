@@ -2,6 +2,7 @@
 
 from tool.utils import *
 from tool.darknet2pytorch import Darknet
+from models import Yolov4
 import argparse
 import metrics
 import format_dataset
@@ -9,12 +10,16 @@ import matplotlib.pyplot as plt
 import cv2
 
 class Detector:
-    def __init__(self,use_cuda,num_classes,cfgfile,weightfile,testset):
+    def __init__(self,use_cuda,num_classes,input_width,input_height,weightfile,namesfile,testset,cfgfile=None):
         self.use_cuda = use_cuda
         self.num_classes = num_classes
         self.cfgfile = cfgfile
         self.weightfile = weightfile
         self.testset = testset # Path to the folder containing the testset over which to perform detections
+        self.namesfile = namesfile
+        self.input_width = input_width
+        self.input_height = input_height
+        # cfgfile can be None cause it's used only when using Darknet configuration file!
 
         if num_classes == 20:
             self.namesfile = 'data/voc.names'
@@ -28,7 +33,8 @@ class Detector:
         print('Num. classes: ',self.num_classes)
         print('Testset path: ',self.testset)
         print('Weightfile path: ',self.weightfile)
-        print('Cfgfile path: ',self.cfgfile)
+        if(self.cfgfile):
+            print('Cfgfile path: ',self.cfgfile)
 
         return 'Cuda acceleration?: '+str(self.use_cuda)
 
@@ -98,7 +104,68 @@ class Detector:
             cap.release()
             writer.release()
 
-    def detect_in_images(self,confidence,output_file=False):
+    def detect_in_images_pytorch(self,confidence,output_file=False):
+        # Perform prediction using yolov4 pytorch implementation and tolov4.conv.137.pth
+        # Creating the model
+        model = Yolov4(yolov4conv137weight=self.weightfile,n_classes=self.num_classes)
+        # Activating gpu
+        if (self.use_cuda):
+            model.cuda()
+            print('Cuda ENABLED')
+        # Creating the file to save output
+        if(output_file):
+            detections = open(self.testset+r'\_predictions.txt','w')
+        # Create output prediction dictionary
+        predictions_dict = {}
+        # Starting the loop
+        for filename in os.listdir(self.testset):
+            f = os.path.join(self.testset, filename)
+            if(os.path.isfile(f)):
+                # Is the file an image??
+                if(filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif'))):
+                    print('Processing image '+filename)
+                    img = cv2.imread(os.path.join(self.testset,filename))
+                    original_height, original_width, _ = img.shape
+                    sized = cv2.resize(img, (self.input_width, self.input_height))
+                    sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
+                    # perform detection
+                    boxes = do_detect(model, sized, confidence, self.num_classes, 0.4, self.use_cuda)
+                    # Process boxes to keep only people
+                    new_boxes = [box for box in boxes if box[6]==0]
+                    if(len(new_boxes)!=0):
+                        if(output_file):
+                            detections.write(filename)
+                        predictions_dict[filename] = []
+                    for box in boxes:
+                        if(box[6]==0):
+                            x1 = int((box[0] - box[2] / 2.0) * original_width)
+                            y1 = int((box[1] - box[3] / 2.0) * original_height)
+                            x2 = int((box[0] + box[2] / 2.0) * original_width)
+                            y2 = int((box[1] + box[3] / 2.0) * original_height)
+                            # check if negative
+                            if(x1<0):
+                                x1=0
+                            if(y1<0):
+                                y1=0
+                            if(x2<0):
+                                x2=0
+                            if(y2<0):
+                                y2=0
+                            obj_class = box[6] #0 means person
+                            # Insert prediction
+                            if(output_file):
+                                detections.write(' '+str(x1)+','+str(y1)+','+str(x2)+','+str(y2)+','+str(obj_class))
+                            predictions_dict[filename].append([x1,y1,x2,y2,obj_class])
+                    if(output_file):
+                        if(len(new_boxes)!=0):
+                            detections.write('\n')
+
+        return predictions_dict
+
+
+
+    def detect_in_images_darknet(self,confidence,output_file=False):
+        # Perform prediction using darknet parser and yolov4.weights
         # This function will create a file in the same folder as the dataset containing the predictions in yolov4 pytorch format
         # INPUT
         # dataset_input = folder containing all the images where the detection has to be performed
@@ -109,9 +176,11 @@ class Detector:
             detections = open(self.testset+r'\_predictions.txt','w')
         # Create output prediction dictionary
         predictions_dict = {}
+
         # Initializing network
         m = Darknet(self.cfgfile)
         m.load_weights(self.weightfile)
+
         if self.use_cuda:
             m.cuda()
             print('GPU activated!')
@@ -235,9 +304,10 @@ if __name__ == '__main__':
         ground_truth_dict[pieces[0]]=[]
         for bbox in pieces[1:]:
             coords = bbox.split(',')
-            ground_truth_dict[pieces[0]].append(int([coords[0]),int(coords[1]),int(coords[2]),int(coords[3]),int(coords[4])])
+            ground_truth_dict[pieces[0]].append([int(coords[0]),int(coords[1]),int(coords[2]),int(coords[3]),int(coords[4])])
 
-    oggetto = Detector(True, 80, r'cfg/yolov4.cfg',r'weight/yolov4.weights',r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test')
-    #oggetto.detect_in_images(0.5,True)
-    metrica = metrics.Metric(r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test\annotations\_annotations.txt',ground_truth_dict,oggetto)
-    metrica.plot_precision_recall_curve(0.25)
+    #oggetto = Detector(True, 80,r'weight/yolov4.conv.137.pth',r'data/coco.names',r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test')
+    oggetto_pytorch = Detector(True,80,608,608,r'weight/yolov4.conv.137.pth',r'data/coco.names',r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test',r'cfg/yolov4.cfg')
+    oggetto_pytorch.detect_in_images_pytorch(0.5,False)
+    #metrica = metrics.Metric(r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test\annotations\_annotations.txt',ground_truth_dict,oggetto)
+    #metrica.plot_precision_recall_curve(0.25)

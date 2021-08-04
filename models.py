@@ -419,7 +419,7 @@ class Yolov4(nn.Module):
         output = self.head(x20, x13, x6)
         return output
 
-def process_videos_different_confidence(model, video_path, confidences, num_classes):
+def process_videos_different_confidence(model, video_path, namesfile, confidences, num_classes):
     # Script that automatically process the same 2 videos using different confidence thresholds
     # confidences -> LIST of confidence values
     import cv2
@@ -491,6 +491,8 @@ if  __name__ == "__main__":
         print('Usage -> "python models.py num_classes weightfile videofile namefile"')
 
     model = Yolov4(n_classes=n_classes)
+
+    print(torch.device('cuda'))
 
     pretrained_dict = torch.load(weightfile, map_location=torch.device('cuda'))
     model.load_state_dict(pretrained_dict)
