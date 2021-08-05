@@ -1,22 +1,22 @@
-import os 
-import cv2 
+import os
+import cv2
 import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
 
 
 def format_annotations_visdrone_to_yolov4_pytorch(annotations_path,area_threshold=0):
-    # This function will format the visdrone dataset to a yolov4 annotation 
-    # INPUT 
+    # This function will format the visdrone dataset to a yolov4 annotation
+    # INPUT
     # annotations_path = path with the "old" annotations
-    # annotations_formatted_path = path were the formatted annotations will be stored 
-    # area_threshold = if different from 0, select only bounding boxes of area > area_threshold. Area is expressed in number of pixels 
+    # annotations_formatted_path = path were the formatted annotations will be stored
+    # area_threshold = if different from 0, select only bounding boxes of area > area_threshold. Area is expressed in number of pixels
     files = os.listdir(annotations_path)
     tot_bbox=0
     f_formatted = open(os.path.join(annotations_path,'_annotations.txt'),'w')
     for file in files:
         f = open(os.path.join(annotations_path, file),'r')
         control=0
-        control_2 = 0 
+        control_2 = 0
         for x in f.readlines():
             pieces = x.split(',')
             area = int(pieces[2])*int(pieces[3])
@@ -39,11 +39,11 @@ def format_annotations_visdrone_to_yolov4_pytorch(annotations_path,area_threshol
         f.close()
     f_formatted.close()
     print('Total number of bboxes: ' + str(tot_bbox))
-        
+
 
 # This function will eliminate images that do not correspond to any annotation (remember we kept only person)
 def remove_not_corresponding(images_path,annotations_path):
-    # INPUT 
+    # INPUT
     # images_path = path of the folder containing all the images
     # annotations_path = path to the file containing the annotations (the file is expected in yolov4_pytorch format)
     images = os.listdir(images_path)
@@ -55,51 +55,25 @@ def remove_not_corresponding(images_path,annotations_path):
         i=i+1
         print("Processing image",i)
         if(not image in list_names):
-            # Image should be deleted 
+            # Image should be deleted
             os.remove(os.path.join(images_path,image))
 
-def visualize_bounding_box(image_path, annotations):
-    # annotations must be a txt file with bounding boxes defined as 
-    # xtopleft,ytopleft,xbottomright,ybottomright separated by ONE space!  
-    
-    head_tail = os.path.split(image_path)
-    image_cv = cv2.imread(image_path)
-    color = (0,255,0)
-    
+def analyze_dataset(annotations):
+    bbox_areas = []
+    # This function performs an analysis on the bounding box dimensions
     with open(annotations) as f:
         lines = f.readlines()
 
     for line in lines:
+        # Every line contains bounding boxes for an image
         boxes = line.split(' ')
-        for box in boxes:
-            coords = box.split(',')
-            left = int(coords[0])
-            top = int(coords[1])
-            right = int(coords[2])
-            bottom = int(coords[3])
-            label = ''
-            imgHeight, imgWidth, _ = image_cv.shape
-            thick = int((imgHeight + imgWidth) // 900)
-            cv2.rectangle(image_cv,(left, top), (right, bottom), color, thick)
-            cv2.putText(image_cv, label, (left, top - 12), 0, 1e-3 * imgHeight, color, thick//3)
-    cv2.imwrite(head_tail[0]+'/drawn_'+head_tail[1], image_cv)
-
-def analyze_dataset(annotations):
-    bbox_areas = []
-    # This function performs an analysis on the bounding box dimensions 
-    with open(annotations) as f: 
-        lines = f.readlines()
-    
-    for line in lines: 
-        # Every line contains bounding boxes for an image 
-        boxes = line.split(' ')
-        for box in boxes[1:]: 
+        for box in boxes[1:]:
             coords = box.split(',')
             width = int(coords[2])-int(coords[0])
             height = int(coords[3]) - int(coords[1])
             bbox_areas.append(width*height)
-    
-    # Printing graphically 
+
+    # Printing graphically
     n= plt.hist(x=bbox_areas, bins='auto', color='#0504aa',
                             alpha=0.7, rwidth=0.85)
     plt.grid(axis='y', alpha=0.75)
@@ -131,5 +105,4 @@ def format_annotations_SARD_to_yolov4_pytorch(annotations_path,annotations_forma
                     formatted_annotations.write(',0')
                 formatted_annotations.write('\n')
     formatted_annotations.close()
-                
-                    
+

@@ -1,4 +1,5 @@
 import os
+from tool import utils
 # This file will contain some functions to perform metrics on a dataset
 # It will work on sard and visdrone datasets to be more precise.
 
@@ -38,18 +39,17 @@ class Metric():
     def precision_recall(self, predictions_annotations,threshold):
         # ground_truth_annotations = dictionary with key = image name, value = list of list [[bbox1][bbox2][bbox3]] of g.t. boxes
         # predicted_annotations = dictionary with key = image name, value = list of list [[bbox1][bbox2][bbox3]] of predicted boxes
-        keys_g_truth = [key for key in self.ground_truth.keys()]
-        keys_prediction = [key for key in predictions_annotations.keys()]
         # Calculating IoU over bounding boxes and estimating the metrics
         true_positive = 0
         # Calculating true positive
-        for key in keys_prediction:
-            for box in predictions_annotations[key]:
-                list_iou = [self.evaluate_IoU(box,box2) for box2 in self.ground_truth[key]]
-                temp_list = [1 if iou>threshold else 0 for iou in list_iou]
-                if(sum(temp_list)>0):
-                    # True positive
-                    true_positive += 1
+        for key in self.ground_truth.keys():
+            if(key in predictions_annotations.keys()):
+                for box in  self.ground_truth[key]:
+                    for box2 in predictions_annotations[key]:
+                        if(self.evaluate_IoU(box,box2)>threshold):
+                            true_positive += 1
+                            break
+
 
         # Calculate total number of ground truth boxes and total number of predictions
         tot_g_truth = 0
@@ -57,7 +57,7 @@ class Metric():
 
         for key in self.ground_truth.keys():
             # So I can take also a subset of a dataset without modifying annotations
-            if(key in keys_prediction):
+            if(key in predictions_annotations.keys()):
                 tot_g_truth += len(self.ground_truth[key])
 
         for key in predictions_annotations.keys():
@@ -81,6 +81,9 @@ class Metric():
 
         return precision, recall, f1
 
+    def calculate_ap():
+        print('Under construction')
+
 
     def plot_precision_recall_curve(self, conf_step, save_plot=False, save_path=None):
         import matplotlib.pyplot as plt
@@ -96,12 +99,15 @@ class Metric():
         conf_values.append(0.99)
         precision_list = []
         recall_list = []
-        for conf in conf_values:
+        for conf in range(1,100,int(conf_step*100)):
             # Perform detection and get precision and recall
-            predictions = self.detector.detect_in_images(conf)
+            predictions = self.detector.detect_in_images_pytorch(conf/100)
             precision, recall, _ = self.precision_recall(predictions,0.5)
-            precision_list.append(precision)
-            recall_list.append(recall)
+            if(precision==0 and recall==0):
+                break
+            else:
+                precision_list.append(precision)
+                recall_list.append(recall)
 
         plt.plot(precision_list,recall_list)
         plt.title('Precision-Recall Curve')

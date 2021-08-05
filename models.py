@@ -380,7 +380,7 @@ class Yolov4Head(nn.Module):
 
 
 class Yolov4(nn.Module):
-    def __init__(self, yolov4conv137weight=None, n_classes=80):
+    def __init__(self, n_classes=80):
         super().__init__()
 
         output_ch = (4 + 1 + n_classes) * 3
@@ -393,17 +393,6 @@ class Yolov4(nn.Module):
         self.down5 = DownSample5()
         # neck
         self.neck = Neck()
-        # yolov4conv137
-        if yolov4conv137weight:
-            _model = nn.Sequential(self.down1, self.down2, self.down3, self.down4, self.down5, self.neck)
-            pretrained_dict = torch.load(yolov4conv137weight)
-
-            model_dict = _model.state_dict()
-            # 1. filter out unnecessary keys
-            pretrained_dict = {k1: v for (k, v), k1 in zip(pretrained_dict.items(), model_dict)}
-            # 2. overwrite entries in the existing state dict
-            model_dict.update(pretrained_dict)
-            _model.load_state_dict(model_dict)
         # head
         self.head = Yolov4Head(output_ch)
 
@@ -419,62 +408,14 @@ class Yolov4(nn.Module):
         output = self.head(x20, x13, x6)
         return output
 
-def process_videos_different_confidence(model, video_path, namesfile, confidences, num_classes):
-    # Script that automatically process the same 2 videos using different confidence thresholds
-    # confidences -> LIST of confidence values
-    import cv2
-    import fnmatch
-    # Break path into pieces
-    pieces = os.path.split(video_path)
-    for name, child in model.named_children():
-        print(name)
-    class_names = load_class_names(namesfile)
+    def load_weights(self,weightfile):
+        pretrained_dict = torch.load(weightfile,map_location=torch.device('cuda'))
+        self.load_state_dict(pretrained_dict)
+        return
 
-    f = open(pieces[0]+"/average_FPS.txt", "a")
-    f.write('\nFPS FOR DIFFERENT CONFIDENCE VALUES\n')
-
-    for threshold in confidences:
-        cap = cv2.VideoCapture(video_path)
-        # Get info on video
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
-        cap.set(3, 1280)
-        cap.set(4, 720)
-        print("Starting the YOLO loop...")
-        # Object to save the video
-        width= int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height= int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-        writer= cv2.VideoWriter(pieces[0]+'/result_'+str(threshold)+'_'+pieces[1], 0x00000021, fps, (width,height))
-        n_frame = 1
-        start = time.time()
-        while (n_frame<=frame_count):
-            print('Processing frame',n_frame,'out of',frame_count)
-            ret, img = cap.read()
-            sized = cv2.resize(img, (1024, 1024))
-            sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
-
-            #start = time.time()
-            boxes = do_detect(model, sized, threshold, num_classes, 0.4, use_cuda)
-            #finish = time.time()
-            #print('Predicted in %f seconds.' % (finish - start))
-
-            result_img = plot_boxes_cv2(img, boxes, savename=None, class_names=class_names)
-
-            # cv2.imshow('Yolo demo', result_img)
-            writer.write(result_img)
-            cv2.waitKey(1)
-            n_frame=n_frame+1
-        finish = time.time()
-        # Printing average FPS in a txt file inside the folder
-        f.write(pieces[1]+'_confidence_'+str(threshold)+'-->'+str(round(frame_count/(finish-start),1))+'FPS\n')
-        f.close
-        cap.release()
-        writer.release()
-        # Compress video
-        print('Compressing video to 360p..')
-        compress_video(pieces[0]+'/result_'+str(threshold)+'_'+pieces[1],pieces[0]+'/result_'+str(threshold)+'_compressed'+pieces[1])
+    def activate_gpu(self):
+        self.cuda()
+        return
 
 
 if  __name__ == "__main__":
@@ -504,5 +445,5 @@ if  __name__ == "__main__":
     if use_cuda:
         model.cuda()
 
-    process_videos_different_confidence(model,videofile,[0.1,0.2,0.3,0.4],n_classes)
+    process_videos_different_confidence(model,videofile,namesfile,[0.1,0.2,0.3,0.4],n_classes)
 
