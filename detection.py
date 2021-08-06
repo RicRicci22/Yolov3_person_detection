@@ -94,7 +94,7 @@ class Detector:
             cap.release()
             writer.release()
 
-    def detect_in_images_pytorch(self,confidence,output_file=False):
+    def detect_in_images(self,confidence,output_file=False):
         # Perform prediction using yolov4 pytorch implementation
         # Creating the model
         model = Yolov4(n_classes=self.num_classes)
@@ -104,69 +104,13 @@ class Detector:
         # Create output prediction dictionary
         predictions_dict = {}
         # Starting the loop
+        print('Detecting in images..')
         for filename in os.listdir(self.testset):
             f = os.path.join(self.testset, filename)
             if(os.path.isfile(f)):
                 # Is the file an image??
                 if(filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif'))):
-                    print('Processing image '+filename)
-                    img = cv2.imread(os.path.join(self.testset,filename))
-                    original_height, original_width, _ = img.shape
-                    sized = cv2.resize(img, (self.input_width, self.input_height))
-                    sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
-                    #plt.imshow(sized)
-                   # plt.show()
-                    # perform detection
-                    boxes = do_detect(self.model, sized, confidence, self.num_classes, 0.4, self.use_cuda)
-                    # Process boxes to keep only people
-                    new_boxes = [box for box in boxes if box[6]==0]
-                    if(output_file):
-                        detections.write(filename)
-                    predictions_dict[filename] = []
-                    for box in new_boxes:
-                        x1 = int((box[0] - box[2] / 2.0) * original_width)
-                        y1 = int((box[1] - box[3] / 2.0) * original_height)
-                        x2 = int((box[0] + box[2] / 2.0) * original_width)
-                        y2 = int((box[1] + box[3] / 2.0) * original_height)
-                        # check if negative
-                        if(x1<0):
-                            x1=0
-                        if(y1<0):
-                            y1=0
-                        if(x2<0):
-                            x2=0
-                        if(y2<0):
-                            y2=0
-                        obj_class = box[6] #0 means person
-                        # Insert prediction
-                        if(output_file):
-                            detections.write(' '+str(x1)+','+str(y1)+','+str(x2)+','+str(y2)+','+str(obj_class))
-                        predictions_dict[filename].append([x1,y1,x2,y2,obj_class])
-                    if(output_file):
-                        detections.write('\n')
-
-        return predictions_dict
-
-
-
-    def detect_in_images_darknet(self,confidence,output_file=False):
-        # Perform prediction using darknet parser and yolov4.weights
-        # This function will create a file in the same folder as the dataset containing the predictions in yolov4 pytorch format
-        # INPUT
-        # dataset_input = folder containing all the images where the detection has to be performed
-        # output_file = if True, also output a file containing all the predictions in yolov4_pytorch format
-        # OUTPUT
-        # predictions_dict = dictionary containing predictions predictions_dict[filename] = [[box1],[box2],[box3]...]
-        if(output_file):
-            detections = open(self.testset+r'\_predictions.txt','w')
-        # Create output prediction dictionary
-        predictions_dict = {}
-        for filename in os.listdir(self.testset):
-            f = os.path.join(self.testset, filename)
-            if(os.path.isfile(f)):
-                # Is the file an image??
-                if(filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif'))):
-                    print('Processing image '+filename)
+                    #print('Processing image '+filename)
                     img = cv2.imread(os.path.join(self.testset,filename))
                     original_height, original_width, _ = img.shape
                     sized = cv2.resize(img, (self.input_width, self.input_height))
@@ -188,6 +132,7 @@ class Detector:
                             x1=0
                         if(y1<0):
                             y1=0
+                        # TODO think about that
                         if(x2<0):
                             x2=0
                         if(y2<0):
@@ -222,66 +167,19 @@ class Detector:
                 top = box[1]
                 right = box[2]
                 bottom = box[3]
-                # TODO label = ''
                 cv2.rectangle(image_cv,(left, top), (right, bottom), color, thick)
-                #cv2.putText(image_cv, label, (left, top - 12), 0, 1e-3 * imgHeight, color, thick//3)
             cv2.imwrite('predictions/drawn_'+image, image_cv)
 
+    def calculate_predictions_list(self, conf_step):
+        # conf_step = the step to calculate the confidence levels
+        conf_values = [i/100 for i in range(1,100,int(conf_step*100))]
+        conf_values.append(0.99)
+        predictions = []
+        for conf in conf_values:
+            print('Detecting in images with confidence: '+str(conf))
+            predictions.append(self.detect_in_images(conf))
 
-def process_video_different_confidence(self, video_path, confidences):
-    # Script that automatically process the same 2 videos using different confidence thresholds
-    # confidences -> LIST of confidence values
-    import fnmatch
-
-    # Break path into pieces
-    pieces = os.path.split(video_path)
-
-    f = open(pieces[0]+"/average_FPS.txt", "a")
-    f.write('\nFPS FOR DIFFERENT CONFIDENCE VALUES\n')
-
-    for confidence in confidences:
-        cap = cv2.VideoCapture(video_path)
-        # Get info on video
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
-        cap.set(3, 1280)
-        cap.set(4, 720)
-        print("Starting the YOLO loop...")
-        # Loading class names
-        class_names = load_class_names(self.namesfile)
-        # Object to save the video
-        width= int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height= int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
-        writer= cv2.VideoWriter(pieces[0]+'/result_'+str(confidence)+'_'+pieces[1], 0x00000021, fps, (width,height))
-        n_frame = 1
-        start = time.time()
-        while (n_frame<=frame_count):
-            print('Processing frame',n_frame,'out of',frame_count)
-            ret, img = cap.read()
-            sized = cv2.resize(img, (m.width, m.height))
-            sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
-
-            boxes = do_detect(self.model, sized, confidence, self.num_classes, 0.4, self.use_cuda)
-
-            result_img = plot_boxes_cv2(img, boxes, savename=None, class_names=class_names)
-
-            writer.write(result_img)
-            cv2.waitKey(1)
-            n_frame=n_frame+1
-        finish = time.time()
-        # Printing average FPS in a txt file inside the folder
-        # TODO
-        f.write(pieces[1]+'_confidence_'+str(confidence)+'-->'+str(round(frame_count/(finish-start),1))+'FPS\n')
-        f.close
-        cap.release()
-        writer.release()
-        # Compress video
-        print('Compressing video to 360p..')
-        compress_video(pieces[0]+'//result_'+str(confidence)+'_'+pieces[1])
-
-
+        return predictions
 
 
 if __name__ == '__main__':
@@ -300,27 +198,24 @@ if __name__ == '__main__':
     # model = Yolov4(1)
     # model.load_weights(r'trained_weights/Visdrone_person+pedestrian/Yolov4_epoch1.pth')
     # model.activate_gpu()
-    # # Creating the detector
-    # yolov4_1024_1024 = Detector(model,True,1,736,736,r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test')
-    # predictions = yolov4_1024_1024.detect_in_images_pytorch(0.4)
-    # yolov4_1024_1024.visualize_predictions(predictions)
-
-    # metrica = metrics.Metric(r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test\annotations\_annotations.txt',ground_truth_dict,yolov4_1024_1024)
-    # precision,recall,f1 = metrica.precision_recall(predictions,0.5)
-    # print(precision,recall,f1)
-    # #metrica.plot_precision_recall_curve(0.10)
 
     # # DARKNET
     # # Creating the model
-    model = Darknet('cfg/yolov4.cfg')
-    model.load_weights(r'weight/yolov4.weights')
+    model = Yolov4(1)
+    model.load_weights(r'C:\Users\farid.melgani\Desktop\master_degree\trained_weights\Visdrone_person+pedestrian_area_mor_200\3_epochs_0.001lr_batch5.pth')
     model.activate_gpu()
-    # # Creating the detector
-    yolov4_1024_1024 = Detector(model,True,80,512,512,r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test')
-    predictions = yolov4_1024_1024.detect_in_images_darknet(0.4)
-    # yolov4_1024_1024.visualize_predictions(predictions)
 
-    metrica = metrics.Metric(r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test\annotations\_annotations.txt',ground_truth_dict,yolov4_1024_1024)
-    precision,recall,f1 = metrica.precision_recall(predictions,0.5)
-    print(precision,recall,f1)
-    # #metrica.plot_precision_recall_curve(0.10)
+    # Creating the detector
+    yolov4_1024_1024 = Detector(model,True,1,512,512,r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test')
+    predictions = yolov4_1024_1024.detect_in_images(0.4)
+    prediction_list = yolov4_1024_1024.calculate_predictions_list(0.25)
+
+    metrica = metrics.Metric(r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test\annotations\_annotations.txt',ground_truth_dict)
+    normal_values = metrica.precision_recall(predictions,0.5)
+    small_values, medium_values, large_values = metrica.calculate_precision_recall_small_medium_large(predictions,0.5)
+    print(normal_values[0],normal_values[1],normal_values[2])
+    print(small_values[0],small_values[1],small_values[2])
+    print(medium_values[0],medium_values[1],medium_values[2])
+    print(large_values[0],large_values[1],large_values[2])
+    precision_list, recall_list = metrica.calculate_precisio_recall_lists(prediction_list,0.5)
+    print(metrica.calc_average_precision(precision_list,recall_list))

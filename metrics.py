@@ -4,16 +4,14 @@ from tool import utils
 # It will work on sard and visdrone datasets to be more precise.
 
 # The idea is that this to be a class, and each object will be created passing a dataset, so that the object will perform metrics on a specific dataset
-# Every metric object is bound to a ground truth and a detector
+# Every metric object is bound to a ground truth
 class Metric():
-    def __init__(self,ground_truth_path,ground_truth_dictionary,detector):
+    def __init__(self,ground_truth_path,ground_truth_dictionary):
         self.ground_truth_path = ground_truth_path
         self.ground_truth = ground_truth_dictionary
-        self.detector = detector
 
     def __str__(self):
         print('Metric object')
-        print('Associated detector:\n\n',self.detector)
 
         return '\nGround truth path: '+str(self.ground_truth_path)
 
@@ -36,8 +34,9 @@ class Metric():
 
         return (intersection)/(area_gtruth+area_predicted-intersection)
 
-    def precision_recall(self, predictions_annotations,threshold):
+    def precision_recall(self, predictions_annotations,iou_threshold):
         # ground_truth_annotations = dictionary with key = image name, value = list of list [[bbox1][bbox2][bbox3]] of g.t. boxes
+        # iou_threshold = the threshold to define a true positive
         # predicted_annotations = dictionary with key = image name, value = list of list [[bbox1][bbox2][bbox3]] of predicted boxes
         # Calculating IoU over bounding boxes and estimating the metrics
         true_positive = 0
@@ -46,7 +45,7 @@ class Metric():
             if(key in predictions_annotations.keys()):
                 for box in  self.ground_truth[key]:
                     for box2 in predictions_annotations[key]:
-                        if(self.evaluate_IoU(box,box2)>threshold):
+                        if(self.evaluate_IoU(box,box2)>iou_threshold):
                             true_positive += 1
                             break
 
@@ -79,37 +78,84 @@ class Metric():
         else:
             f1 = 0
 
-        return precision, recall, f1
+        return [precision, recall, f1]
 
-    def calculate_ap():
-        print('Under construction')
+    def calculate_precision_recall_small_medium_large(self,predictions_annotations,iou_threhsold):
+        # Function that separates the precision and recall between small, medium and large objects
+        # Small : area < 100 pixels
+        # Medium : 100 < area < 500 pixels
+        # Large: area > 500 pixels
+        small_dictionary = {}
+        medium_dictionary = {}
+        large_dictionary = {}
+        for key in predictions_annotations.keys():
+            small_dictionary[key] = []
+            medium_dictionary[key] = []
+            large_dictionary[key] = []
+            boxes = predictions_annotations[key]
+            for box in boxes:
+                width = box[3]-box[1]
+                height = box[2]-box[0]
+                if(width*height<150):
+                    small_dictionary[key].append(box)
+                elif(width*height>800):
+                    large_dictionary[key].append(box)
+                else:
+                    medium_dictionary[key].append(box)
+
+        small_values = self.precision_recall(small_dictionary,iou_threhsold)
+        medium_values = self.precision_recall(medium_dictionary,iou_threhsold)
+        large_values = self.precision_recall(large_dictionary,iou_threhsold)
+
+        return small_values, medium_values, large_values
 
 
-    def plot_precision_recall_curve(self, conf_step, save_plot=False, save_path=None):
+    def calculate_precisio_recall_lists(self, predictions_list, iou_threshold):
+        # Function that plots precision recall values for different confidences to create a curve
+        # INPUT
+        # predictions_list = a list of predictions, one at each threhsold
+        # iou_threhsold = the IOU threhsold used to quantify true positive
+        precision_list = []
+        recall_list = []
+        for prediction in predictions_list:
+            values = self.precision_recall(prediction,iou_threshold)
+            if(values[0]==0 and values[1]==0):
+                break
+            else:
+                precision_list.append(values[0])
+                recall_list.append(values[1])
+        return precision_list, recall_list
+
+
+
+    def plot_precision_recall_curve(self, precision_list, recall_list, save_plot=False, save_path=None):
         import matplotlib.pyplot as plt
         # Function that plots precision recall values for different confidences to create a curve
         # INPUT
-        # ground_truth_dict
-        # conf_step = step of confidence to use to calculate confidence values in this way conf_values = [0:conf_step:1]
+        # precision_list = list of precision values
+        # recall_list = list of recall values
         # save_plot = if True the function will save the precision recall curve in the specified path
         # save_path = path where to save the plot
-        # OUTPUT
-        # Nothing
-        conf_values = [i/100 for i in range(1,100,int(conf_step*100))]
-        conf_values.append(0.99)
-        precision_list = []
-        recall_list = []
-        for conf in range(1,100,int(conf_step*100)):
-            # Perform detection and get precision and recall
-            predictions = self.detector.detect_in_images_pytorch(conf/100)
-            precision, recall, _ = self.precision_recall(predictions,0.5)
-            if(precision==0 and recall==0):
-                break
-            else:
-                precision_list.append(precision)
-                recall_list.append(recall)
-
         plt.plot(precision_list,recall_list)
         plt.title('Precision-Recall Curve')
         plt.show()
         return
+
+    def calc_average_precision(self,precision_list, recall_list):
+        # Function to calculate the average precision
+        # INPUT
+        # precision_list = a list of floating precision values
+        # recall_list = a list of floating recall values
+        # OUTPUT
+        # average_precision = floating value
+        recall_list.append(0.0)
+        precision_list.append(1.0)
+        recall_list.reverse()
+        precision_list.reverse()
+        AP = 0
+        for index in range(len(recall_list)-1):
+            AP+=(recall_list[index+1]-recall_list[index])*precision_list[index]
+
+        return AP
+
+
