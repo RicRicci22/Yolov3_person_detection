@@ -184,14 +184,7 @@ class Detector:
 
 if __name__ == '__main__':
     # Parsing ground truth
-    ground_truth_dict = {}
-    file = open(r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test\annotations\_annotations.txt','r')
-    for row in file.readlines():
-        pieces = row.split(' ')
-        ground_truth_dict[pieces[0]]=[]
-        for bbox in pieces[1:]:
-            coords = bbox.split(',')
-            ground_truth_dict[pieces[0]].append([int(coords[0]),int(coords[1]),int(coords[2]),int(coords[3]),int(coords[4])])
+    ground_truth_dict = parse_gtruth(r'C:\Users\farid.melgani\Desktop\master_degree\datasets\custom_dataset\_annotations.txt')
 
     # # PYTORCH
     # # Creating the model
@@ -201,21 +194,10 @@ if __name__ == '__main__':
 
     # # DARKNET
     # # Creating the model
-    model = Yolov4(1)
-    model.load_weights(r'C:\Users\farid.melgani\Desktop\master_degree\trained_weights\Visdrone_person+pedestrian_area_mor_200\3_epochs_0.001lr_batch5.pth')
+    model = Darknet(r'cfg/yolov4.cfg')
+    model.load_weights(r'C:\Users\farid.melgani\Desktop\master_degree\weight\yolov4.weights')
     model.activate_gpu()
 
     # Creating the detector
-    yolov4_1024_1024 = Detector(model,True,1,512,512,r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test')
-    predictions = yolov4_1024_1024.detect_in_images(0.4)
-    prediction_list = yolov4_1024_1024.calculate_predictions_list(0.25)
-
-    metrica = metrics.Metric(r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test\annotations\_annotations.txt',ground_truth_dict)
-    normal_values = metrica.precision_recall(predictions,0.5)
-    small_values, medium_values, large_values = metrica.calculate_precision_recall_small_medium_large(predictions,0.5)
-    print(normal_values[0],normal_values[1],normal_values[2])
-    print(small_values[0],small_values[1],small_values[2])
-    print(medium_values[0],medium_values[1],medium_values[2])
-    print(large_values[0],large_values[1],large_values[2])
-    precision_list, recall_list = metrica.calculate_precisio_recall_lists(prediction_list,0.5)
-    print(metrica.calc_average_precision(precision_list,recall_list))
+    yolov4_detector = Detector(model,True,80,512,512,r'C:\Users\farid.melgani\Desktop\master_degree\datasets\custom_dataset')
+    yolov4_detector.visualize_predictions(ground_truth_dict)

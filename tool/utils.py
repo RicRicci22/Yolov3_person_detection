@@ -378,3 +378,14 @@ def compress_video(to_compress_path):
     os.remove(to_compress_path)
     os.rename(to_compress_path+'_compressed',to_compress_path)
 
+def parse_gtruth(gt_path):
+    ground_truth_dict = {}
+    file = open(gt_path,'r')
+    for row in file.readlines():
+        pieces = row.split(' ')
+        ground_truth_dict[pieces[0]]=[]
+        for bbox in pieces[1:]:
+            coords = bbox.split(',')
+            ground_truth_dict[pieces[0]].append([int(coords[0]),int(coords[1]),int(coords[2]),int(coords[3]),int(coords[4])])
+
+    return ground_truth_dict

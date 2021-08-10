@@ -73,6 +73,13 @@ def analyze_dataset(annotations):
             height = int(coords[3]) - int(coords[1])
             bbox_areas.append(width*height)
 
+    # Get quantiles
+    bbox_areas.sort()
+    first_quantile = bbox_areas[round(len(bbox_areas)*0.33)]
+    second_quantile = bbox_areas[round(len(bbox_areas)*0.66)]
+    print(first_quantile)
+    print(second_quantile)
+
     # Printing graphically
     n= plt.hist(x=bbox_areas, bins='auto', color='#0504aa',
                             alpha=0.7, rwidth=0.85)
@@ -106,3 +113,7 @@ def format_annotations_SARD_to_yolov4_pytorch(annotations_path,annotations_forma
                 formatted_annotations.write('\n')
     formatted_annotations.close()
 
+
+if __name__ == '__main__':
+
+    analyze_dataset(r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test\annotations\_annotations.txt')

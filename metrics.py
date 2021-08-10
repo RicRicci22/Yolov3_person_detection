@@ -80,10 +80,10 @@ class Metric():
 
         return [precision, recall, f1]
 
-    def calculate_precision_recall_small_medium_large(self,predictions_annotations,iou_threhsold):
+    def calculate_precision_recall_small_medium_large(self,predictions_annotations,iou_threhsold, small_threshold, large_threshold):
         # Function that separates the precision and recall between small, medium and large objects
-        # Small : area < 100 pixels
-        # Medium : 100 < area < 500 pixels
+        # Small : area < 150 pixels
+        # Medium : 150 < area < 500 pixels
         # Large: area > 500 pixels
         small_dictionary = {}
         medium_dictionary = {}
@@ -96,9 +96,9 @@ class Metric():
             for box in boxes:
                 width = box[3]-box[1]
                 height = box[2]-box[0]
-                if(width*height<150):
+                if(width*height<=small_threshold):
                     small_dictionary[key].append(box)
-                elif(width*height>800):
+                elif(width*height>=large_threshold):
                     large_dictionary[key].append(box)
                 else:
                     medium_dictionary[key].append(box)
@@ -138,6 +138,8 @@ class Metric():
         # save_path = path where to save the plot
         plt.plot(precision_list,recall_list)
         plt.title('Precision-Recall Curve')
+        plt.xlabel('Precision')
+        plt.ylabel('Recall')
         plt.show()
         return
 

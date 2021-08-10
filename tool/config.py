@@ -32,8 +32,8 @@ def parse_cfg(cfgfile):
     if block:
         blocks.append(block)
     fp.close()
-    for block in blocks:
-        print(block)
+    #for block in blocks:
+        #print(block)
     return blocks
 
 
