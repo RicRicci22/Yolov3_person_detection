@@ -113,7 +113,5 @@ def format_annotations_SARD_to_yolov4_pytorch(annotations_path,annotations_forma
                 formatted_annotations.write('\n')
     formatted_annotations.close()
 
+#def format_annotations_SARD_to_yolov4_pytorch(annotations_path):
 
-if __name__ == '__main__':
-
-    analyze_dataset(r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test\annotations\_annotations.txt')
