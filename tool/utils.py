@@ -2,10 +2,7 @@ import sys
 import os
 import time
 import math
-import torch
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
-from torch.autograd import Variable
 
 import itertools
 import struct  # get_image_size
@@ -23,6 +20,10 @@ def softmax(x):
 
 
 def bbox_iou(box1, box2, x1y1x2y2=True):
+
+    # print('iou box1:', box1)
+    # print('iou box2:', box2)
+
     if x1y1x2y2:
         mx = min(box1[0], box2[0])
         Mx = max(box1[2], box2[2])
@@ -33,14 +34,15 @@ def bbox_iou(box1, box2, x1y1x2y2=True):
         w2 = box2[2] - box2[0]
         h2 = box2[3] - box2[1]
     else:
-        mx = min(box1[0] - box1[2] / 2.0, box2[0] - box2[2] / 2.0)
-        Mx = max(box1[0] + box1[2] / 2.0, box2[0] + box2[2] / 2.0)
-        my = min(box1[1] - box1[3] / 2.0, box2[1] - box2[3] / 2.0)
-        My = max(box1[1] + box1[3] / 2.0, box2[1] + box2[3] / 2.0)
         w1 = box1[2]
         h1 = box1[3]
         w2 = box2[2]
         h2 = box2[3]
+
+        mx = min(box1[0], box2[0])
+        Mx = max(box1[0] + w1, box2[0] + w2)
+        my = min(box1[1], box2[1])
+        My = max(box1[1] + h1, box2[1] + h2)
     uw = Mx - mx
     uh = My - my
     cw = w1 + w2 - uw
@@ -56,154 +58,48 @@ def bbox_iou(box1, box2, x1y1x2y2=True):
     return carea / uarea
 
 
-def bbox_ious(boxes1, boxes2, x1y1x2y2=True):
-    if x1y1x2y2:
-        mx = torch.min(boxes1[0], boxes2[0])
-        Mx = torch.max(boxes1[2], boxes2[2])
-        my = torch.min(boxes1[1], boxes2[1])
-        My = torch.max(boxes1[3], boxes2[3])
-        w1 = boxes1[2] - boxes1[0]
-        h1 = boxes1[3] - boxes1[1]
-        w2 = boxes2[2] - boxes2[0]
-        h2 = boxes2[3] - boxes2[1]
-    else:
-        mx = torch.min(boxes1[0] - boxes1[2] / 2.0, boxes2[0] - boxes2[2] / 2.0)
-        Mx = torch.max(boxes1[0] + boxes1[2] / 2.0, boxes2[0] + boxes2[2] / 2.0)
-        my = torch.min(boxes1[1] - boxes1[3] / 2.0, boxes2[1] - boxes2[3] / 2.0)
-        My = torch.max(boxes1[1] + boxes1[3] / 2.0, boxes2[1] + boxes2[3] / 2.0)
-        w1 = boxes1[2]
-        h1 = boxes1[3]
-        w2 = boxes2[2]
-        h2 = boxes2[3]
-    uw = Mx - mx
-    uh = My - my
-    cw = w1 + w2 - uw
-    ch = h1 + h2 - uh
-    mask = ((cw <= 0) + (ch <= 0) > 0)
-    area1 = w1 * h1
-    area2 = w2 * h2
-    carea = cw * ch
-    carea[mask] = 0
-    uarea = area1 + area2 - carea
-    return carea / uarea
+def nms_cpu(boxes, confs, nms_thresh=0.5, min_mode=False):
+    # print(boxes.shape)
+    x1 = boxes[:, 0]
+    y1 = boxes[:, 1]
+    x2 = boxes[:, 2]
+    y2 = boxes[:, 3]
 
+    areas = (x2 - x1) * (y2 - y1)
+    order = confs.argsort()[::-1]
 
-def nms(boxes, nms_thresh):
-    if len(boxes) == 0:
-        return boxes
+    keep = []
+    while order.size > 0:
+        idx_self = order[0]
+        idx_other = order[1:]
 
-    det_confs = torch.zeros(len(boxes))
-    for i in range(len(boxes)):
-        det_confs[i] = 1 - boxes[i][4]
+        keep.append(idx_self)
 
-    _, sortIds = torch.sort(det_confs)
-    out_boxes = []
-    for i in range(len(boxes)):
-        box_i = boxes[sortIds[i]]
-        if box_i[4] > 0:
-            out_boxes.append(box_i)
-            for j in range(i + 1, len(boxes)):
-                box_j = boxes[sortIds[j]]
-                if bbox_iou(box_i, box_j, x1y1x2y2=False) > nms_thresh:
-                    box_j[4] = 0
-    return out_boxes
+        xx1 = np.maximum(x1[idx_self], x1[idx_other])
+        yy1 = np.maximum(y1[idx_self], y1[idx_other])
+        xx2 = np.minimum(x2[idx_self], x2[idx_other])
+        yy2 = np.minimum(y2[idx_self], y2[idx_other])
 
+        w = np.maximum(0.0, xx2 - xx1)
+        h = np.maximum(0.0, yy2 - yy1)
+        inter = w * h
 
-def convert2cpu(gpu_matrix):
-    #return gpu_matrix.cpu()
-    return torch.FloatTensor(gpu_matrix.size()).copy_(gpu_matrix)
+        if min_mode:
+            over = inter / np.minimum(areas[order[0]], areas[order[1:]])
+        else:
+            over = inter / (areas[order[0]] + areas[order[1:]] - inter)
 
+        inds = np.where(over <= nms_thresh)[0]
+        order = order[inds + 1]
 
-def convert2cpu_long(gpu_matrix):
-    return torch.LongTensor(gpu_matrix.size()).copy_(gpu_matrix)
+    return np.array(keep)
 
-
-def get_region_boxes_out_model(output, conf_thresh, num_classes, anchors, num_anchors, only_objectness=1,
-                               validation=False):
-    anchor_step = len(anchors) // num_anchors
-    if len(output.shape) == 3:
-        output = np.expand_dims(output, axis=0)
-    batch = output.shape[0]
-    assert (output.shape[1] == (5 + num_classes) * num_anchors)
-    h = output.shape[2]
-    w = output.shape[3]
-
-    t0 = time.time()
-    all_boxes = []
-    output = output.reshape(batch * num_anchors, 5 + num_classes, h * w).transpose((1, 0, 2)).reshape(
-        5 + num_classes,
-        batch * num_anchors * h * w)
-
-    grid_x = np.expand_dims(np.expand_dims(np.linspace(0, w - 1, w), axis=0).repeat(h, 0), axis=0).repeat(
-        batch * num_anchors, axis=0).reshape(
-        batch * num_anchors * h * w)
-    grid_y = np.expand_dims(np.expand_dims(np.linspace(0, h - 1, h), axis=0).repeat(w, 0).T, axis=0).repeat(
-        batch * num_anchors, axis=0).reshape(
-        batch * num_anchors * h * w)
-
-    xs = sigmoid(output[0]) + grid_x
-    ys = sigmoid(output[1]) + grid_y
-
-    anchor_w = np.array(anchors).reshape((num_anchors, anchor_step))[:, 0]
-    anchor_h = np.array(anchors).reshape((num_anchors, anchor_step))[:, 1]
-    anchor_w = np.expand_dims(np.expand_dims(anchor_w, axis=1).repeat(batch, 1), axis=2) \
-        .repeat(h * w, axis=2).transpose(1, 0, 2).reshape(batch * num_anchors * h * w)
-    anchor_h = np.expand_dims(np.expand_dims(anchor_h, axis=1).repeat(batch, 1), axis=2) \
-        .repeat(h * w, axis=2).transpose(1, 0, 2).reshape(batch * num_anchors * h * w)
-    ws = np.exp(output[2]) * anchor_w
-    hs = np.exp(output[3]) * anchor_h
-
-    det_confs = sigmoid(output[4])
-
-    cls_confs = softmax(output[5:5 + num_classes].transpose(1, 0))
-    cls_max_confs = np.max(cls_confs, 1)
-    cls_max_ids = np.argmax(cls_confs, 1)
-    t1 = time.time()
-
-    sz_hw = h * w
-    sz_hwa = sz_hw * num_anchors
-    t2 = time.time()
-    for b in range(batch):
-        boxes = []
-        for cy in range(h):
-            for cx in range(w):
-                for i in range(num_anchors):
-                    ind = b * sz_hwa + i * sz_hw + cy * w + cx
-                    det_conf = det_confs[ind]
-                    if only_objectness:
-                        conf = det_confs[ind]
-                    else:
-                        conf = det_confs[ind] * cls_max_confs[ind]
-
-                    if conf > conf_thresh:
-                        bcx = xs[ind]
-                        bcy = ys[ind]
-                        bw = ws[ind]
-                        bh = hs[ind]
-                        cls_max_conf = cls_max_confs[ind]
-                        cls_max_id = cls_max_ids[ind]
-                        box = [bcx / w, bcy / h, bw / w, bh / h, det_conf, cls_max_conf, cls_max_id]
-                        if (not only_objectness) and validation:
-                            for c in range(num_classes):
-                                tmp_conf = cls_confs[ind][c]
-                                if c != cls_max_id and det_confs[ind] * tmp_conf > conf_thresh:
-                                    box.append(tmp_conf)
-                                    box.append(c)
-                        boxes.append(box)
-        all_boxes.append(boxes)
-    t3 = time.time()
-    if False:
-        print('---------------------------------')
-        print('matrix computation : %f' % (t1 - t0))
-        print('        gpu to cpu : %f' % (t2 - t1))
-        print('      boxes filter : %f' % (t3 - t2))
-        print('---------------------------------')
-    return all_boxes
 
 
 def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
     import cv2
-    colors = torch.FloatTensor([[1, 0, 1], [0, 0, 1], [0, 1, 1], [0, 1, 0], [1, 1, 0], [1, 0, 0]])
+    img = np.copy(img)
+    colors = np.array([[1, 0, 1], [0, 0, 1], [0, 1, 1], [0, 1, 0], [1, 1, 0], [1, 0, 0]], dtype=np.float32)
 
     def get_color(c, x, max_val):
         ratio = float(x) / max_val * 5
@@ -217,10 +113,10 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
     height = img.shape[0]
     for i in range(len(boxes)):
         box = boxes[i]
-        x1 = int((box[0] - box[2] / 2.0) * width)
-        y1 = int((box[1] - box[3] / 2.0) * height)
-        x2 = int((box[0] + box[2] / 2.0) * width)
-        y2 = int((box[1] + box[3] / 2.0) * height)
+        x1 = int(box[0] * width)
+        y1 = int(box[1] * height)
+        x2 = int(box[2] * width)
+        y2 = int(box[3] * height)
 
         if color:
             rgb = color
@@ -237,54 +133,11 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
             blue = get_color(0, offset, classes)
             if color is None:
                 rgb = (red, green, blue)
-            # TO CHANGE! GREEDY APPROACH
-            if(class_names[cls_id]=='person'):
-                img = cv2.putText(img, class_names[cls_id], (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1.2, rgb, 1)
-                img = cv2.rectangle(img, (x1, y1), (x2, y2), rgb, 5)
+            img = cv2.putText(img, class_names[cls_id], (x1, y1), cv2.FONT_HERSHEY_SIMPLEX, 1.2, rgb, 1)
+        img = cv2.rectangle(img, (x1, y1), (x2, y2), rgb, 1)
     if savename:
         print("save plot results to %s" % savename)
         cv2.imwrite(savename, img)
-    return img
-
-
-def plot_boxes(img, boxes, savename=None, class_names=None):
-    colors = torch.FloatTensor([[1, 0, 1], [0, 0, 1], [0, 1, 1], [0, 1, 0], [1, 1, 0], [1, 0, 0]]);
-
-    def get_color(c, x, max_val):
-        ratio = float(x) / max_val * 5
-        i = int(math.floor(ratio))
-        j = int(math.ceil(ratio))
-        ratio = ratio - i
-        r = (1 - ratio) * colors[i][c] + ratio * colors[j][c]
-        return int(r * 255)
-
-    width = img.width
-    height = img.height
-    print(width,height)
-    draw = ImageDraw.Draw(img)
-    for i in range(len(boxes)):
-        box = boxes[i]
-        x1 = (box[0] - box[2] / 2.0) * width
-        y1 = (box[1] - box[3] / 2.0) * height
-        x2 = (box[0] + box[2] / 2.0) * width
-        y2 = (box[1] + box[3] / 2.0) * height
-
-        rgb = (255, 0, 0)
-        if len(box) >= 7 and class_names:
-            cls_conf = box[5]
-            cls_id = box[6]
-            print('%s: %f' % (class_names[cls_id], cls_conf))
-            classes = len(class_names)
-            offset = cls_id * 123457 % classes
-            red = get_color(2, offset, classes)
-            green = get_color(1, offset, classes)
-            blue = get_color(0, offset, classes)
-            rgb = (red, green, blue)
-            draw.text((x1, y1), class_names[cls_id], fill=rgb)
-        draw.rectangle([x1, y1, x2, y2], outline=rgb)
-    if savename:
-        print("save plot results to %s" % savename)
-        img.save(savename)
     return img
 
 
@@ -309,63 +162,76 @@ def load_class_names(namesfile):
     return class_names
 
 
-def do_detect(model, img, conf_thresh, n_classes, nms_thresh, use_cuda=1):
-    model.eval()
 
-    if isinstance(img, Image.Image):
-        width = img.width
-        height = img.height
-        img = torch.ByteTensor(torch.ByteStorage.from_buffer(img.tobytes()))
-        img = img.view(height, width, 3).transpose(0, 1).transpose(0, 2).contiguous()
-        img = img.view(1, 3, height, width)
-        img = img.float().div(255.0)
-    elif type(img) == np.ndarray and len(img.shape) == 3:  # cv2 image
-        img = torch.from_numpy(img.transpose(2, 0, 1)).float().div(255.0).unsqueeze(0)
-    elif type(img) == np.ndarray and len(img.shape) == 4:
-        img = torch.from_numpy(img.transpose(0, 3, 1, 2)).float().div(255.0)
-    else:
-        print("unknow image type")
-        exit(-1)
+def post_processing(img, conf_thresh, nms_thresh, output, print_time=False):
 
-    if use_cuda:
-        img = img.cuda()
-    img = torch.autograd.Variable(img)
+    # anchors = [12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401]
+    # num_anchors = 9
+    # anchor_masks = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+    # strides = [8, 16, 32]
+    # anchor_step = len(anchors) // num_anchors
 
-    list_features = model(img)
+    # [batch, num, 1, 4]
+    box_array = output[0]
+    # [batch, num, num_classes]
+    confs = output[1]
 
-    list_features_numpy = []
-    for feature in list_features:
-        list_features_numpy.append(feature.data.cpu().numpy())
+    t1 = time.time()
 
-    return post_processing(img, conf_thresh, n_classes, nms_thresh, list_features_numpy)
+    if type(box_array).__name__ != 'ndarray':
+        box_array = box_array.cpu().detach().numpy()
+        confs = confs.cpu().detach().numpy()
 
+    num_classes = confs.shape[2]
 
-def post_processing(img, conf_thresh, n_classes, nms_thresh, list_features_numpy):
-    anchors = [12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401]
-    num_anchors = 9
-    anchor_masks = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
-    strides = [8, 16, 32]
-    anchor_step = len(anchors) // num_anchors
-    boxes = []
-    for i in range(3):
-        masked_anchors = []
-        for m in anchor_masks[i]:
-            masked_anchors += anchors[m * anchor_step:(m + 1) * anchor_step]
-        masked_anchors = [anchor / strides[i] for anchor in masked_anchors]
-        boxes.append(get_region_boxes_out_model(list_features_numpy[i], conf_thresh, n_classes, masked_anchors,
-                                                len(anchor_masks[i])))
-        # boxes.append(get_region_boxes(list_boxes[i], 0.6, 80, masked_anchors, len(anchor_masks[i])))
-    if img.shape[0] > 1:
-        bboxs_for_imgs = [
-            boxes[0][index] + boxes[1][index] + boxes[2][index]
-            for index in range(img.shape[0])]
+    # [batch, num, 4]
+    box_array = box_array[:, :, 0]
 
-        boxes = [nms(bboxs, nms_thresh) for bboxs in bboxs_for_imgs]
-    else:
-        boxes = boxes[0][0] + boxes[1][0] + boxes[2][0]
-        boxes = nms(boxes, nms_thresh)
+    # [batch, num, num_classes] --> [batch, num]
+    max_conf = np.max(confs, axis=2)
+    max_id = np.argmax(confs, axis=2)
 
-    return boxes
+    t2 = time.time()
+
+    bboxes_batch = []
+    for i in range(box_array.shape[0]):
+
+        argwhere = max_conf[i] > conf_thresh
+        l_box_array = box_array[i, argwhere, :]
+        l_max_conf = max_conf[i, argwhere]
+        l_max_id = max_id[i, argwhere]
+
+        bboxes = []
+        # nms for each class
+        for j in range(num_classes):
+
+            cls_argwhere = l_max_id == j
+            ll_box_array = l_box_array[cls_argwhere, :]
+            ll_max_conf = l_max_conf[cls_argwhere]
+            ll_max_id = l_max_id[cls_argwhere]
+
+            keep = nms_cpu(ll_box_array, ll_max_conf, nms_thresh)
+
+            if (keep.size > 0):
+                ll_box_array = ll_box_array[keep, :]
+                ll_max_conf = ll_max_conf[keep]
+                ll_max_id = ll_max_id[keep]
+
+                for k in range(ll_box_array.shape[0]):
+                    bboxes.append([ll_box_array[k, 0], ll_box_array[k, 1], ll_box_array[k, 2], ll_box_array[k, 3], ll_max_conf[k], ll_max_conf[k], ll_max_id[k]])
+
+        bboxes_batch.append(bboxes)
+
+    t3 = time.time()
+    if(print_time):
+        print('-----------------------------------')
+        print('       max and argmax : %f' % (t2 - t1))
+        print('                  nms : %f' % (t3 - t2))
+        print('Post processing total : %f' % (t3 - t1))
+        print('-----------------------------------')
+
+    return bboxes_batch
+
 
 def compress_video(to_compress_path):
     import moviepy.editor as mp

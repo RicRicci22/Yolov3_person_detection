@@ -15,17 +15,18 @@ import pickle
 # Darknet with pretrained weights. Changing input resolution. Confidence threshold set to 0.5. IoU thrshold set to 0.5.
 # Objective -> get precision and recall for each input resolution on the complete VISDRONE test set and write it on a txtfile. Also get precision, recall for small medium and large objects on the complete visdrone.
 resolutions = [416,512,608,704,800,896,992,1088]
-ground_truth_dict = parse_gtruth(r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test\annotations\_annotations.txt')
+anno_path = r'C:\Users\farid.melgani\Desktop\master_degree\datasets\visdrone\test\annotations\_annotations.txt'
+ground_truth_dict = parse_gtruth(anno_path)
 # DARKNET
 # Creating the model
-model = Darknet(r'cfg/yolov4.cfg')
-model.load_weights(r'C:\Users\farid.melgani\Desktop\master_degree\weight\yolov4.weights')
+model = Yolov4(yolov4conv137weight=None,n_classes=80,inference=True)
+model.load_weights(r'C:\Users\farid.melgani\Desktop\master_degree\weight\yolov4.pth')
 model.activate_gpu()
 # Creating element to measure metrics
-metrica = Metric(r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test\annotations\_annotations.txt',ground_truth_dict)
+metrica = Metric(anno_path,ground_truth_dict)
 # Creating file to store results
-file = open(r'C:\Users\farid.melgani\Desktop\master_degree\tests\input_resolution\pretrained_weights\test1.txt','w')
-file.write('Darknet with pretrained weights. Changing input resolution. Confidence threshold set to 0.5. IoU thrshold set to 0.5. Small obj threshold is 72. Large obj threshold is 242. \n')
+file = open(r'C:\Users\farid.melgani\Desktop\master_degree\tests\input_resolution\visdrone\pretrained_pytorch\test2.txt','w')
+file.write('Pytorch yolov4 with pretrained weights. Changing input resolution. Confidence threshold set to 0.5. IoU thrshold set to 0.5. Small obj threshold is 72. Large obj threshold is 242. \n')
 #############
 # boxes = ground_truth_dict['0000006_00159_d_0000001.jpg']
 # for box in boxes:
@@ -35,9 +36,9 @@ file.write('Darknet with pretrained weights. Changing input resolution. Confiden
 for resolution in resolutions:
     # Creating the detector
     print('Calculating for resolution '+str(resolution)+'x'+str(resolution))
-    yolov4_detector = Detector(model,True,80,resolution,resolution,r'C:\Users\farid.melgani\Desktop\master_degree\visdrone\test')
+    yolov4_detector = Detector(model,True,80,resolution,resolution,r'C:\Users\farid.melgani\Desktop\master_degree\datasets\visdrone\test')
     predictions = yolov4_detector.detect_in_images(0.4)
-    filehandler = open(r'C:\Users\farid.melgani\Desktop\master_degree\tests\input_resolution\pretrained_weights\predictions_'+str(resolution)+'.pkl', 'wb')
+    filehandler = open(r'C:\Users\farid.melgani\Desktop\master_degree\tests\input_resolution\visdrone\pretrained_pytorch\predictions_'+str(resolution)+'.pkl', 'wb')
     pickle.dump(predictions, filehandler)
     overall_values = metrica.precision_recall(predictions,0.5)
     #small_values, medium_values, large_values = metrica.calculate_precision_recall_small_medium_large(predictions,0.5,72,242)

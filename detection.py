@@ -1,6 +1,7 @@
 # This file will contain functions to perform detection on various files such as images, videos, etc.
 
 from tool.utils import *
+from tool.torch_utils import *
 from tool.darknet2pytorch import Darknet
 from models import Yolov4
 import argparse
@@ -96,14 +97,14 @@ class Detector:
 
     def detect_in_images(self,confidence,output_file=False):
         # Perform prediction using yolov4 pytorch implementation
-        # Creating the model
-        model = Yolov4(n_classes=self.num_classes)
         # Creating the file to save output
         if(output_file):
             detections = open(self.testset+r'\_predictions.txt','w')
         # Create output prediction dictionary
         predictions_dict = {}
         # Starting the loop
+        i=0
+        t0 = time.time()
         print('Detecting in images..')
         for filename in os.listdir(self.testset):
             f = os.path.join(self.testset, filename)
@@ -111,22 +112,27 @@ class Detector:
                 # Is the file an image??
                 if(filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif'))):
                     #print('Processing image '+filename)
+                    i +=1
                     img = cv2.imread(os.path.join(self.testset,filename))
                     original_height, original_width, _ = img.shape
                     sized = cv2.resize(img, (self.input_width, self.input_height))
                     sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
                     # perform detection
-                    boxes = do_detect(self.model, sized, confidence, self.num_classes, 0.4, self.use_cuda)
-                    # Process boxes to keep only people
-                    new_boxes = [box for box in boxes if box[6]==0]
+                    boxes = do_detect(self.model, sized, confidence, 0.4, self.use_cuda)
+                    # Process boxes to keep only people (boxes[0]) cause in detection batch = 1!!!!
+                    new_boxes = [box for box in boxes[0] if box[6]==0]
                     if(output_file):
                         detections.write(filename)
                     predictions_dict[filename] = []
                     for box in new_boxes:
-                        x1 = int((box[0] - box[2] / 2.0) * original_width)
-                        y1 = int((box[1] - box[3] / 2.0) * original_height)
-                        x2 = int((box[0] + box[2] / 2.0) * original_width)
-                        y2 = int((box[1] + box[3] / 2.0) * original_height)
+                        # x1 = int((box[0] - box[2] / 2.0) * original_width)
+                        # y1 = int((box[1] - box[3] / 2.0) * original_height)
+                        # x2 = int((box[0] + box[2] / 2.0) * original_width)
+                        # y2 = int((box[1] + box[3] / 2.0) * original_height)
+                        x1 = int(box[0]*original_width)
+                        y1 = int(box[1]*original_height)
+                        x2 = int(box[2]*original_width)
+                        y2 = int(box[3]*original_height)
                         # check if negative
                         if(x1<0):
                             x1=0
@@ -144,7 +150,8 @@ class Detector:
                         predictions_dict[filename].append([x1,y1,x2,y2,obj_class])
                     if(output_file):
                         detections.write('\n')
-
+        t1 = time.time()
+        print('FPS = ' + str(i/(t1-t0)))
         return predictions_dict
 
     def visualize_predictions(self, predictions):
@@ -162,6 +169,7 @@ class Detector:
             thick = int((imgHeight + imgWidth) // 900)
 
             boxes_predicted = predictions[image]
+            print(boxes_predicted)
             for box in boxes_predicted:
                 left = box[0]
                 top = box[1]
@@ -184,20 +192,21 @@ class Detector:
 
 if __name__ == '__main__':
     # Parsing ground truth
-    ground_truth_dict = parse_gtruth(r'C:\Users\farid.melgani\Desktop\master_degree\datasets\custom_dataset\_annotations.txt')
+    ground_truth_dict = parse_gtruth(r'C:\Users\farid.melgani\Desktop\master_degree\datasets\custom_dataset\test\_annotations.txt')
 
     # # PYTORCH
     # # Creating the model
-    # model = Yolov4(1)
-    # model.load_weights(r'trained_weights/Visdrone_person+pedestrian/Yolov4_epoch1.pth')
-    # model.activate_gpu()
+    model = Yolov4(yolov4conv137weight=None,n_classes=80,inference=True)
+    model.load_weights(r'C:\Users\farid.melgani\Desktop\master_degree\weight\yolov4.pth')
+    model.activate_gpu()
 
     # # DARKNET
     # # Creating the model
-    model = Darknet(r'cfg/yolov4.cfg')
-    model.load_weights(r'C:\Users\farid.melgani\Desktop\master_degree\weight\yolov4.weights')
-    model.activate_gpu()
+    # model = Darknet(r'cfg/yolov4.cfg')
+    # model.load_weights(r'C:\Users\farid.melgani\Desktop\master_degree\weight\yolov4.weights')
+    # model.activate_gpu()
 
     # Creating the detector
-    yolov4_detector = Detector(model,True,80,512,512,r'C:\Users\farid.melgani\Desktop\master_degree\datasets\custom_dataset')
-    yolov4_detector.visualize_predictions(ground_truth_dict)
+    yolov4_detector = Detector(model,True,80,512,512,r'C:\Users\farid.melgani\Desktop\master_degree\datasets\custom_dataset\test')
+    pred = yolov4_detector.detect_in_images(0.5)
+    yolov4_detector.visualize_predictions(pred)

@@ -1,5 +1,5 @@
 import torch
-from tool.utils import convert2cpu
+from tool.torch_utils import convert2cpu
 
 
 def parse_cfg(cfgfile):
@@ -32,8 +32,6 @@ def parse_cfg(cfgfile):
     if block:
         blocks.append(block)
     fp.close()
-    #for block in blocks:
-        #print(block)
     return blocks
 
 
