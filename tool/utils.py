@@ -7,6 +7,7 @@ import numpy as np
 import itertools
 import struct  # get_image_size
 import imghdr  # get_image_size
+import cv2
 
 
 def sigmoid(x):
@@ -255,3 +256,18 @@ def parse_gtruth(gt_path):
             ground_truth_dict[pieces[0]].append([int(coords[0]),int(coords[1]),int(coords[2]),int(coords[3]),int(coords[4])])
 
     return ground_truth_dict
+
+def keep_ratio(img,dimension):
+    # TODO in training RANDOM padding top bottom right left
+    height,width,_= img.shape
+    if(height>width):
+        ratio = width/height
+        new_width = round(ratio*dimension)
+        new_width = new_width-new_width%32
+        return cv2.resize(img,(new_width,dimension))
+    else:
+        ratio = height/width
+        new_height = round(ratio*dimension)
+        new_height = new_height-new_height%32
+        return cv2.resize(img,(dimension,new_height))
+

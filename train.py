@@ -362,7 +362,6 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
     saved_models = deque()
     model.train()
     for epoch in range(epochs):
-        # model.train()
         epoch_loss = 0
         epoch_step = 0
 

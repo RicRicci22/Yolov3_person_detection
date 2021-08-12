@@ -95,7 +95,7 @@ class Detector:
             cap.release()
             writer.release()
 
-    def detect_in_images(self,confidence,output_file=False):
+    def detect_in_images(self,confidence, keep_aspect_ratio=False, output_file=False):
         # Perform prediction using yolov4 pytorch implementation
         # Creating the file to save output
         if(output_file):
@@ -115,8 +115,12 @@ class Detector:
                     i +=1
                     img = cv2.imread(os.path.join(self.testset,filename))
                     original_height, original_width, _ = img.shape
-                    sized = cv2.resize(img, (self.input_width, self.input_height))
-                    sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
+                    if(keep_aspect_ratio):
+                        sized = keep_ratio(img,self.input_height)
+                        sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
+                    else:
+                        sized = cv2.resize(img, (self.input_width, self.input_height))
+                        sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
                     # perform detection
                     boxes = do_detect(self.model, sized, confidence, 0.4, self.use_cuda)
                     # Process boxes to keep only people (boxes[0]) cause in detection batch = 1!!!!
@@ -125,10 +129,6 @@ class Detector:
                         detections.write(filename)
                     predictions_dict[filename] = []
                     for box in new_boxes:
-                        # x1 = int((box[0] - box[2] / 2.0) * original_width)
-                        # y1 = int((box[1] - box[3] / 2.0) * original_height)
-                        # x2 = int((box[0] + box[2] / 2.0) * original_width)
-                        # y2 = int((box[1] + box[3] / 2.0) * original_height)
                         x1 = int(box[0]*original_width)
                         y1 = int(box[1]*original_height)
                         x2 = int(box[2]*original_width)
@@ -138,11 +138,10 @@ class Detector:
                             x1=0
                         if(y1<0):
                             y1=0
-                        # TODO think about that
-                        if(x2<0):
-                            x2=0
-                        if(y2<0):
-                            y2=0
+                        if(x2>original_width):
+                            x2=original_width
+                        if(y2>original_height):
+                            y2=original_height
                         obj_class = box[6] #0 means person
                         # Insert prediction
                         if(output_file):
