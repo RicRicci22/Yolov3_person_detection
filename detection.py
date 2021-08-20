@@ -76,7 +76,7 @@ class Detector:
                 sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
 
                 #start = time.time()
-                boxes = do_detect(self.model, sized, confidence, self.num_classes, 0.4, use_cuda)
+                boxes = do_detect(self.model, sized, confidence, self.num_classes, 0.4, self.use_cuda)
                 #finish = time.time()
                 #print('Predicted in %f seconds.' % (finish - start))
 
@@ -191,12 +191,12 @@ class Detector:
 
 if __name__ == '__main__':
     # Parsing ground truth
-    ground_truth_dict = parse_gtruth(r'C:\Users\farid.melgani\Desktop\master_degree\datasets\custom_dataset\test\_annotations.txt')
+    ground_truth_dict = parse_gtruth(r'datasets\visdrone\test\_annotations.txt')
 
     # # PYTORCH
     # # Creating the model
     model = Yolov4(yolov4conv137weight=None,n_classes=80,inference=True)
-    model.load_weights(r'C:\Users\farid.melgani\Desktop\master_degree\weight\yolov4.pth')
+    model.load_weights(r'weight\yolov4.pth')
     model.activate_gpu()
 
     # # DARKNET
@@ -206,6 +206,6 @@ if __name__ == '__main__':
     # model.activate_gpu()
 
     # Creating the detector
-    yolov4_detector = Detector(model,True,80,512,512,r'C:\Users\farid.melgani\Desktop\master_degree\datasets\custom_dataset\test')
+    yolov4_detector = Detector(model,True,80,416,416,r'datasets\visdrone\test')
     pred = yolov4_detector.detect_in_images(0.5)
     yolov4_detector.visualize_predictions(pred)

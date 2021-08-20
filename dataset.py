@@ -167,13 +167,13 @@ def image_data_augmentation(mat, w, h, pleft, ptop, swidth, sheight, flip, dhue,
                                                                           roi[1]:roi[1] + roi[3]]
 
             sized = dst
-
         if gaussian_noise:
-            noise = np.array(sized.shape)
-            gaussian_noise = min(gaussian_noise, 127)
+            # Could not be negative the variance
             gaussian_noise = max(gaussian_noise, 0)
-            cv2.randn(noise, 0, gaussian_noise)  # mean and variance
-            sized = sized + noise
+            sigma = gaussian_noise**0.5
+            gauss = np.random.normal(0,sigma,sized.shape)
+            gauss = gauss*255
+            sized = sized + gauss
     except:
         print("OpenCV can't augment image: " + str(w) + " x " + str(h))
         sized = mat
@@ -278,14 +278,13 @@ class Yolo_dataset(Dataset):
 
         if use_mixup == 3:
             min_offset = 0.2
-            cut_x = random.randint(int(self.cfg.w * min_offset), int(self.cfg.w * (1 - min_offset)))
-            cut_y = random.randint(int(self.cfg.h * min_offset), int(self.cfg.h * (1 - min_offset)))
+            cut_x = random.randint(int(self.cfg.width * min_offset), int(self.cfg.width * (1 - min_offset)))
+            cut_y = random.randint(int(self.cfg.height * min_offset), int(self.cfg.height * (1 - min_offset)))
 
-        r1, r2, r3, r4, r_scale = 0, 0, 0, 0, 0
         dhue, dsat, dexp, flip, blur = 0, 0, 0, 0, 0
         gaussian_noise = 0
 
-        out_img = np.zeros([self.cfg.h, self.cfg.w, 3])
+        out_img = np.zeros([self.cfg.height, self.cfg.width, 3])
         out_bboxes = []
 
         for i in range(use_mixup + 1):
@@ -320,14 +319,14 @@ class Yolo_dataset(Dataset):
                 else:
                     blur = self.cfg.blur
 
-            if self.cfg.gaussian and random.randint(0, 1):
-                gaussian_noise = self.cfg.gaussian
+            if self.cfg.gaussian_var and random.randint(0, 1):
+                gaussian_noise = self.cfg.gaussian_var
             else:
                 gaussian_noise = 0
 
             if self.cfg.letter_box:
                 img_ar = ow / oh
-                net_ar = self.cfg.w / self.cfg.h
+                net_ar = self.cfg.width / self.cfg.height
                 result_ar = img_ar / net_ar
                 # print(" ow = %d, oh = %d, w = %d, h = %d, img_ar = %f, net_ar = %f, result_ar = %f \n", ow, oh, w, h, img_ar, net_ar, result_ar);
                 if result_ar > 1:  # sheight - should be increased
@@ -347,11 +346,11 @@ class Yolo_dataset(Dataset):
             sheight = oh - ptop - pbot
 
             truth, min_w_h = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip, pleft, ptop, swidth,
-                                                  sheight, self.cfg.w, self.cfg.h)
+                                                  sheight, self.cfg.width, self.cfg.height)
             if (min_w_h / 8) < blur and blur > 1:  # disable blur if one of the objects is too small
                 blur = min_w_h / 8
 
-            ai = image_data_augmentation(img, self.cfg.w, self.cfg.h, pleft, ptop, swidth, sheight, flip,
+            ai = image_data_augmentation(img, self.cfg.width, self.cfg.height, pleft, ptop, swidth, sheight, flip,
                                          dhue, dsat, dexp, gaussian_noise, blur, truth)
 
             if use_mixup == 0:
@@ -370,13 +369,13 @@ class Yolo_dataset(Dataset):
                     pleft = pright
                     pright = tmp
 
-                left_shift = int(min(cut_x, max(0, (-int(pleft) * self.cfg.w / swidth))))
-                top_shift = int(min(cut_y, max(0, (-int(ptop) * self.cfg.h / sheight))))
+                left_shift = int(min(cut_x, max(0, (-int(pleft) * self.cfg.width / swidth))))
+                top_shift = int(min(cut_y, max(0, (-int(ptop) * self.cfg.height / sheight))))
 
-                right_shift = int(min((self.cfg.w - cut_x), max(0, (-int(pright) * self.cfg.w / swidth))))
-                bot_shift = int(min(self.cfg.h - cut_y, max(0, (-int(pbot) * self.cfg.h / sheight))))
+                right_shift = int(min((self.cfg.width - cut_x), max(0, (-int(pright) * self.cfg.width / swidth))))
+                bot_shift = int(min(self.cfg.height - cut_y, max(0, (-int(pbot) * self.cfg.height / sheight))))
 
-                out_img, out_bbox = blend_truth_mosaic(out_img, ai, truth.copy(), self.cfg.w, self.cfg.h, cut_x,
+                out_img, out_bbox = blend_truth_mosaic(out_img, ai, truth.copy(), self.cfg.width, self.cfg.height, cut_x,
                                                        cut_y, i, left_shift, right_shift, top_shift, bot_shift)
                 out_bboxes.append(out_bbox)
                 # print(img_path)
@@ -436,7 +435,7 @@ if __name__ == "__main__":
 
     random.seed(2020)
     np.random.seed(2020)
-    Cfg.dataset_dir = '/mnt/e/Dataset'
+    Cfg.dataset_dir = r'C:\Users\Melgani\Desktop\master_degree\datasets\visdrone\train'
     dataset = Yolo_dataset(Cfg.train_label, Cfg)
     for i in range(100):
         out_img, out_bboxes = dataset.__getitem__(i)

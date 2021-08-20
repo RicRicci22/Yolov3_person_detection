@@ -31,7 +31,6 @@ from easydict import EasyDict as edict
 from dataset import Yolo_dataset
 from cfg import Cfg
 from models import Yolov4
-from tool.darknet2pytorch import Darknet
 
 from tool.tv_reference.utils import collate_fn as val_collate
 from tool.tv_reference.coco_utils import convert_to_coco_api
@@ -288,7 +287,7 @@ def collate(batch):
     return images, bboxes
 
 
-def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=20, img_scale=0.5):
+def train(model, device, config, epochs=5, save_cp=True, log_step=20, img_scale=0.5):
     train_dataset = Yolo_dataset(config.train_label, config, train=True)
     val_dataset = Yolo_dataset(config.val_label, config, train=False)
 
@@ -307,8 +306,7 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
     # writer.add_images('legend',
     #                   torch.from_numpy(train_dataset.label2colorlegend2(cfg.DATA_CLASSES).transpose([2, 0, 1])).to(
     #                       device).unsqueeze(0))
-    max_itr = config.TRAIN_EPOCHS * n_train
-    # global_step = cfg.TRAIN_MINEPOCH * n_train
+
     global_step = 0
     logging.info(f'''Starting training:
         Epochs:          {epochs}
@@ -411,11 +409,7 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
 
                 pbar.update(images.shape[0])
 
-            if cfg.use_darknet_cfg:
-                eval_model = Darknet(cfg.cfgfile, inference=True)
-            else:
-                eval_model = Yolov4(cfg.pretrained, n_classes=cfg.classes, inference=True)
-            # eval_model = Yolov4(yolov4conv137weight=None, n_classes=config.classes, inference=True)
+            eval_model = Yolov4(cfg.pretrained, n_classes=cfg.classes, inference=True)
             if torch.cuda.device_count() > 1:
                 eval_model.load_state_dict(model.module.state_dict())
             else:
@@ -463,7 +457,6 @@ def train(model, device, config, epochs=5, batch_size=1, save_cp=True, log_step=
 def evaluate(model, data_loader, cfg, device, logger=None, **kwargs):
     """ finished, tested
     """
-    # cpu_device = torch.device("cpu")
     model.eval()
     # header = 'Test:'
 
@@ -526,107 +519,21 @@ def evaluate(model, data_loader, cfg, device, logger=None, **kwargs):
 
 def get_args(**kwargs):
     cfg = kwargs
-    parser = argparse.ArgumentParser(description='Train the Model on images and target masks',
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    # parser.add_argument('-b', '--batch-size', metavar='B', type=int, nargs='?', default=2,
-    #                     help='Batch size', dest='batchsize')
-    parser.add_argument('-l', '--learning-rate', metavar='LR', type=float, nargs='?', default=0.001,
-                        help='Learning rate', dest='learning_rate')
-    parser.add_argument('-f', '--load', dest='load', type=str, default=None,
-                        help='Load model from a .pth file')
-    parser.add_argument('-g', '--gpu', metavar='G', type=str, default='-1',
-                        help='GPU', dest='gpu')
-    parser.add_argument('-dir', '--data-dir', type=str, default=None,
-                        help='dataset dir', dest='dataset_dir')
-    parser.add_argument('-pretrained', type=str, default=None, help='pretrained yolov4.conv.137')
-    parser.add_argument('-classes', type=int, default=80, help='dataset classes')
-    parser.add_argument('-train_label_path', dest='train_label', type=str, default='train.txt', help="train label path")
-    parser.add_argument(
-        '-optimizer', type=str, default='adam',
-        help='training optimizer',
-        dest='TRAIN_OPTIMIZER')
-    parser.add_argument(
-        '-iou-type', type=str, default='iou',
-        help='iou type (iou, giou, diou, ciou)',
-        dest='iou_type')
-    parser.add_argument(
-        '-keep-checkpoint-max', type=int, default=10,
-        help='maximum number of checkpoints to keep. If set 0, all checkpoints will be kept',
-        dest='keep_checkpoint_max')
-    args = vars(parser.parse_args())
-
-    # for k in args.keys():
-    #     cfg[k] = args.get(k)
-    cfg.update(args)
-
     return edict(cfg)
 
 
-def init_logger(log_file=None, log_dir=None, log_level=logging.INFO, mode='w', stdout=True):
-    """
-    log_dir: 日志文件的文件夹路径
-    mode: 'a', append; 'w', 覆盖原文件写入.
-    """
-    def get_date_str():
-        now = datetime.datetime.now()
-        return now.strftime('%Y-%m-%d_%H-%M-%S')
-
-    fmt = '%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s: %(message)s'
-    if log_dir is None:
-        log_dir = '~/temp/log/'
-    if log_file is None:
-        log_file = 'log_' + get_date_str() + '.txt'
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-    log_file = os.path.join(log_dir, log_file)
-    # 此处不能使用logging输出
-    print('log file path:' + log_file)
-
-    logging.basicConfig(level=logging.DEBUG,
-                        format=fmt,
-                        filename=log_file,
-                        filemode=mode)
-
-    if stdout:
-        console = logging.StreamHandler(stream=sys.stdout)
-        console.setLevel(log_level)
-        formatter = logging.Formatter(fmt)
-        console.setFormatter(formatter)
-        logging.getLogger('').addHandler(console)
-
-    return logging
-
-
-def _get_date_str():
-    now = datetime.datetime.now()
-    return now.strftime('%Y-%m-%d_%H-%M')
-
-
-if __name__ == "__main__":
-    logging = init_logger(log_dir='log')
+if __name__ == '__main__':
     cfg = get_args(**Cfg)
-    os.environ["CUDA_VISIBLE_DEVICES"] = cfg.gpu
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    logging.info(f'Using device {device}')
 
-    if cfg.use_darknet_cfg:
-        model = Darknet(cfg.cfgfile)
-    else:
-        model = Yolov4(cfg.pretrained, n_classes=cfg.classes)
-
-    if torch.cuda.device_count() > 1:
-        model = torch.nn.DataParallel(model)
-    model.to(device=device)
+    device = torch.device('cuda')
+    pretrained_weights_path = r'C:\Users\Melgani\Desktop\master_degree\weight\yolov4.conv.137.pth'
+    model = Yolov4(pretrained_weights_path, n_classes=1)
+    model.to(device='cuda')
 
     try:
         train(model=model,
-              config=cfg,
-              epochs=cfg.TRAIN_EPOCHS,
-              device=device, )
+                config=cfg,
+                epochs=cfg.TRAIN_EPOCHS,
+                device=device, )
     except KeyboardInterrupt:
         torch.save(model.state_dict(), 'INTERRUPTED.pth')
-        logging.info('Saved interrupt')
-        try:
-            sys.exit(0)
-        except SystemExit:
-            os._exit(0)
