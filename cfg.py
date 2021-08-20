@@ -24,10 +24,10 @@ Cfg.percentage = 10
 
 Cfg.gpu = 0
 
-Cfg.batch = 64
+Cfg.batch = 32
 Cfg.subdivisions = 16
-Cfg.width = 1600
-Cfg.height = 1120
+Cfg.width = 1088
+Cfg.height = 1088
 Cfg.channels = 3
 Cfg.momentum = 0.949
 Cfg.decay = 0.0005
@@ -50,9 +50,10 @@ Cfg.letter_box = 0
 Cfg.jitter = 0.2
 Cfg.classes = 1
 Cfg.track = 0
-Cfg.flip = 1
+Cfg.flip = True
+Cfg.flip_value = 1 # 0 - x-axis, 1 - y-axis, -1 - both axes (x & y)
 Cfg.blur = 0
-Cfg.gaussian_var = 0.01
+Cfg.gaussian_var = 0.005
 Cfg.boxes = 60  # box num
 Cfg.TRAIN_EPOCHS = 300
 Cfg.train_label = os.path.join(_BASE_DIR, 'datasets','visdrone','train','_annotations.txt')

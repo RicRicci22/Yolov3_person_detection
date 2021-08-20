@@ -131,7 +131,7 @@ class Yolo_loss(nn.Module):
         super(Yolo_loss, self).__init__()
         self.device = device
         self.strides = [8, 16, 32]
-        image_size = 608
+        image_size = 1088
         self.n_classes = n_classes
         self.n_anchors = n_anchors
 
@@ -235,6 +235,7 @@ class Yolo_loss(nn.Module):
         loss, loss_xy, loss_wh, loss_obj, loss_cls, loss_l2 = 0, 0, 0, 0, 0, 0
         for output_id, output in enumerate(xin):
             batchsize = output.shape[0]
+            # fsize can be the size of the output (first scaled by 8, second by 16 and so on)
             fsize = output.shape[2]
             n_ch = 5 + self.n_classes
 
@@ -243,6 +244,7 @@ class Yolo_loss(nn.Module):
 
             # logistic activation for xy, obj, cls
             output[..., np.r_[:2, 4:n_ch]] = torch.sigmoid(output[..., np.r_[:2, 4:n_ch]])
+
 
             pred = output[..., :4].clone()
             pred[..., 0] += self.grid_x[output_id]
@@ -287,7 +289,7 @@ def collate(batch):
     return images, bboxes
 
 
-def train(model, device, config, epochs=5, save_cp=True, log_step=20, img_scale=0.5):
+def train(model, device, config, epochs=5, save_cp=True, log_step=1):
     train_dataset = Yolo_dataset(config.train_label, config, train=True)
     val_dataset = Yolo_dataset(config.val_label, config, train=False)
 
@@ -300,30 +302,8 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=20, img_scale=
     val_loader = DataLoader(val_dataset, batch_size=config.batch // config.subdivisions, shuffle=True, num_workers=8,
                             pin_memory=True, drop_last=True, collate_fn=val_collate)
 
-    writer = SummaryWriter(log_dir=config.TRAIN_TENSORBOARD_DIR,
-                           filename_suffix=f'OPT_{config.TRAIN_OPTIMIZER}_LR_{config.learning_rate}_BS_{config.batch}_Sub_{config.subdivisions}_Size_{config.width}',
-                           comment=f'OPT_{config.TRAIN_OPTIMIZER}_LR_{config.learning_rate}_BS_{config.batch}_Sub_{config.subdivisions}_Size_{config.width}')
-    # writer.add_images('legend',
-    #                   torch.from_numpy(train_dataset.label2colorlegend2(cfg.DATA_CLASSES).transpose([2, 0, 1])).to(
-    #                       device).unsqueeze(0))
-
     global_step = 0
-    logging.info(f'''Starting training:
-        Epochs:          {epochs}
-        Batch size:      {config.batch}
-        Subdivisions:    {config.subdivisions}
-        Learning rate:   {config.learning_rate}
-        Training size:   {n_train}
-        Validation size: {n_val}
-        Checkpoints:     {save_cp}
-        Device:          {device.type}
-        Images size:     {config.width}
-        Optimizer:       {config.TRAIN_OPTIMIZER}
-        Dataset classes: {config.classes}
-        Train label path:{config.train_label}
-        Pretrained:
-    ''')
-
+    
     # learning rate setup
     def burnin_schedule(i):
         if i < config.burn_in:
@@ -386,28 +366,11 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=20, img_scale=
                     model.zero_grad()
 
                 if global_step % (log_step * config.subdivisions) == 0:
-                    writer.add_scalar('train/Loss', loss.item(), global_step)
-                    writer.add_scalar('train/loss_xy', loss_xy.item(), global_step)
-                    writer.add_scalar('train/loss_wh', loss_wh.item(), global_step)
-                    writer.add_scalar('train/loss_obj', loss_obj.item(), global_step)
-                    writer.add_scalar('train/loss_cls', loss_cls.item(), global_step)
-                    writer.add_scalar('train/loss_l2', loss_l2.item(), global_step)
-                    writer.add_scalar('lr', scheduler.get_lr()[0] * config.batch, global_step)
-                    pbar.set_postfix(**{'loss (batch)': loss.item(), 'loss_xy': loss_xy.item(),
-                                        'loss_wh': loss_wh.item(),
-                                        'loss_obj': loss_obj.item(),
-                                        'loss_cls': loss_cls.item(),
-                                        'loss_l2': loss_l2.item(),
-                                        'lr': scheduler.get_lr()[0] * config.batch
-                                        })
-                    logging.debug('Train step_{}: loss : {},loss xy : {},loss wh : {},'
-                                  'loss obj : {}，loss cls : {},loss l2 : {},lr : {}'
-                                  .format(global_step, loss.item(), loss_xy.item(),
-                                          loss_wh.item(), loss_obj.item(),
-                                          loss_cls.item(), loss_l2.item(),
-                                          scheduler.get_lr()[0] * config.batch))
+                    print('\n',loss.item(),'\n',scheduler.get_last_lr())
 
-                pbar.update(images.shape[0])
+                pbar.update(images.shape[0]) 
+
+            pbar.close()
 
             eval_model = Yolov4(cfg.pretrained, n_classes=cfg.classes, inference=True)
             if torch.cuda.device_count() > 1:
@@ -419,18 +382,6 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=20, img_scale=
             del eval_model
 
             stats = evaluator.coco_eval['bbox'].stats
-            writer.add_scalar('train/AP', stats[0], global_step)
-            writer.add_scalar('train/AP50', stats[1], global_step)
-            writer.add_scalar('train/AP75', stats[2], global_step)
-            writer.add_scalar('train/AP_small', stats[3], global_step)
-            writer.add_scalar('train/AP_medium', stats[4], global_step)
-            writer.add_scalar('train/AP_large', stats[5], global_step)
-            writer.add_scalar('train/AR1', stats[6], global_step)
-            writer.add_scalar('train/AR10', stats[7], global_step)
-            writer.add_scalar('train/AR100', stats[8], global_step)
-            writer.add_scalar('train/AR_small', stats[9], global_step)
-            writer.add_scalar('train/AR_medium', stats[10], global_step)
-            writer.add_scalar('train/AR_large', stats[11], global_step)
 
             if save_cp:
                 try:
@@ -450,7 +401,6 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=20, img_scale=
                     except:
                         logging.info(f'failed to remove {model_to_remove}')
 
-    writer.close()
 
 
 @torch.no_grad()
@@ -527,8 +477,8 @@ if __name__ == '__main__':
 
     device = torch.device('cuda')
     pretrained_weights_path = r'C:\Users\Melgani\Desktop\master_degree\weight\yolov4.conv.137.pth'
-    model = Yolov4(pretrained_weights_path, n_classes=1)
-    model.to(device='cuda')
+    model = Yolov4(pretrained_weights_path,n_classes=1)
+    model.to(device=device)
 
     try:
         train(model=model,

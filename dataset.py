@@ -12,7 +12,6 @@
 '''
 import os
 import random
-import sys
 
 import cv2
 import numpy as np
@@ -83,10 +82,21 @@ def fill_truth_detection(bboxes, num_boxes, classes, flip, dx, dy, sx, sy, net_w
     bboxes[:, 1] *= (net_h / sy)
     bboxes[:, 3] *= (net_h / sy)
 
-    if flip:
-        temp = net_w - bboxes[:, 0]
+    if flip==-1:
+        temp_width = net_w - bboxes[:, 0]
+        temp_height = net_h - bboxes[:, 1]
         bboxes[:, 0] = net_w - bboxes[:, 2]
-        bboxes[:, 2] = temp
+        bboxes[:, 1] = net_h - bboxes[:, 3]
+        bboxes[:, 2] = temp_width
+        bboxes[:, 3] = temp_height
+    elif flip==1:
+        temp_width = net_w - bboxes[:, 0]
+        bboxes[:, 0] = net_w - bboxes[:, 2]
+        bboxes[:, 2] = temp_width
+    elif(flip==0):
+        temp_height = net_h - bboxes[:, 1]
+        bboxes[:, 1] = net_h - bboxes[:, 3]
+        bboxes[:, 3] = temp_height
 
     return bboxes, min_w_h
 
@@ -128,9 +138,12 @@ def image_data_augmentation(mat, w, h, pleft, ptop, swidth, sheight, flip, dhue,
             sized = cv2.resize(cropped, (w, h), cv2.INTER_LINEAR)
 
         # flip
-        if flip:
-            # cv2.Mat cropped
-            sized = cv2.flip(sized, 1)  # 0 - x-axis, 1 - y-axis, -1 - both axes (x & y)
+        if flip==1:
+            sized = cv2.flip(sized, flip) 
+        elif flip==-1:
+            sized = cv2.flip(sized,flip)
+        elif flip==0:
+            sized = cv2.flip(sized,flip)
 
         # HSV augmentation
         # cv2.COLOR_BGR2HSV, cv2.COLOR_RGB2HSV, cv2.COLOR_HSV2BGR, cv2.COLOR_HSV2RGB
@@ -173,7 +186,10 @@ def image_data_augmentation(mat, w, h, pleft, ptop, swidth, sheight, flip, dhue,
             sigma = gaussian_noise**0.5
             gauss = np.random.normal(0,sigma,sized.shape)
             gauss = gauss*255
+            # Adding the two images
             sized = sized + gauss
+            # Clipping between 0 and 255
+            sized = np.clip(sized,0,255)
     except:
         print("OpenCV can't augment image: " + str(w) + " x " + str(h))
         sized = mat
@@ -281,7 +297,7 @@ class Yolo_dataset(Dataset):
             cut_x = random.randint(int(self.cfg.width * min_offset), int(self.cfg.width * (1 - min_offset)))
             cut_y = random.randint(int(self.cfg.height * min_offset), int(self.cfg.height * (1 - min_offset)))
 
-        dhue, dsat, dexp, flip, blur = 0, 0, 0, 0, 0
+        dhue, dsat, dexp, flip, blur = 0, 0, 0, -2, 0
         gaussian_noise = 0
 
         out_img = np.zeros([self.cfg.height, self.cfg.width, 3])
@@ -308,7 +324,8 @@ class Yolo_dataset(Dataset):
             ptop = random.randint(-dh, dh)
             pbot = random.randint(-dh, dh)
 
-            flip = random.randint(0, 1) if self.cfg.flip else 0
+            if(self.cfg.flip and random.randint(0,1)):
+                flip = self.cfg.flip_value
 
             if (self.cfg.blur):
                 tmp_blur = random.randint(0, 2)  # 0 - disable, 1 - blur background, 2 - blur the whole image
