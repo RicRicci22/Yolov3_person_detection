@@ -14,18 +14,19 @@ import pickle
 # Darknet with pretrained weights. Changing input resolution. Confidence threshold set to 0.5. IoU thrshold set to 0.5.
 # Objective -> get precision and recall for each input resolution on the complete VISDRONE test set and write it on a txtfile. Also get precision, recall for small medium and large objects on the complete visdrone.
 resolutions = [416,512,608,704,800,896,992,1088]
-anno_path = r'datasets\custom\test\_annotations.txt'
+#resolutions = [1088]
+anno_path = r'datasets\visdrone\test\_annotations.txt'
 ground_truth_dict = parse_gtruth(anno_path)
 # DARKNET
 # Creating the model
-model = Yolov4(yolov4conv137weight=None,n_classes=80,inference=True)
-model.load_weights(r'weight\yolov4.pth')
+model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
+model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\trained_weights\yolov4_trained_4_epochs_visdrone.pth')
 model.activate_gpu()
 # Creating element to measure metrics
 metrica = Metric(anno_path,ground_truth_dict)
 # Creating file to store results
-file = open(r'tests\input_resolution\custom\pretrained_pytorch\test.txt','w')
-file.write('Pytorch yolov4 with pretrained weights. Changing input resolution. Confidence threshold set to 0.5. IoU thrshold set to 0.5. Small obj threshold is 72. Large obj threshold is 242. \n')
+file = open(r'tests\input_resolution\visdrone\trained_weights\test.txt','w')
+#file.write('Pytorch yolov4 with pretrained weights. Changing input resolution. Confidence threshold set to 0.5. IoU thrshold set to 0.5. Small obj threshold is 72. Large obj threshold is 242. \n')
 #############
 # boxes = ground_truth_dict['0000006_00159_d_0000001.jpg']
 # for box in boxes:
@@ -35,9 +36,10 @@ file.write('Pytorch yolov4 with pretrained weights. Changing input resolution. C
 for resolution in resolutions:
     # Creating the detector
     print('Calculating for resolution '+str(resolution)+'x'+str(resolution))
-    yolov4_detector = Detector(model,True,80,resolution,resolution,r'datasets\custom\test')
+    yolov4_detector = Detector(model,True,1,resolution,resolution,r'datasets\visdrone\test')
     predictions = yolov4_detector.detect_in_images(0.4,False)
-    filehandler = open(r'tests\input_resolution\custom\pretrained_pytorch\predictions_'+str(resolution)+'.pkl', 'wb')
+    #print(predictions)
+    filehandler = open(r'tests\input_resolution\visdrone\trained_weights\predictions_'+str(resolution)+'.pkl', 'wb')
     pickle.dump(predictions, filehandler)
     overall_values = metrica.precision_recall(predictions,0.5)
     #small_values, medium_values, large_values = metrica.calculate_precision_recall_small_medium_large(predictions,0.5,72,242)

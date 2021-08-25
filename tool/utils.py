@@ -171,7 +171,6 @@ def post_processing(img, conf_thresh, nms_thresh, output, print_time=False):
     # anchor_masks = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
     # strides = [8, 16, 32]
     # anchor_step = len(anchors) // num_anchors
-
     # [batch, num, 1, 4]
     box_array = output[0]
     # [batch, num, num_classes]
@@ -184,7 +183,6 @@ def post_processing(img, conf_thresh, nms_thresh, output, print_time=False):
         confs = confs.cpu().detach().numpy()
 
     num_classes = confs.shape[2]
-
     # [batch, num, 4]
     box_array = box_array[:, :, 0]
 

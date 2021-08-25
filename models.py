@@ -419,21 +419,17 @@ class Yolov4(nn.Module):
         self.down4 = DownSample4()
         self.down5 = DownSample5()
         # neck
-        self.neek = Neck(inference)
-        # yolov4conv137
-        if yolov4conv137weight:
-            _model = nn.Sequential(self.down1, self.down2, self.down3, self.down4, self.down5, self.neek)
-            pretrained_dict = torch.load(yolov4conv137weight)
-
-            model_dict = _model.state_dict()
-            # 1. filter out unnecessary keys
-            pretrained_dict = {k1: v for (k, v), k1 in zip(pretrained_dict.items(), model_dict)}
-            # 2. overwrite entries in the existing state dict
-            model_dict.update(pretrained_dict)
-            _model.load_state_dict(model_dict)
+        self.neck = Neck(inference)
 
         # head
         self.head = Yolov4Head(output_ch, n_classes, inference)
+
+        # yolov4conv137
+        if yolov4conv137weight:
+            pretrained_dict = torch.load(yolov4conv137weight)
+            model_dict = self.state_dict()
+            model_dict.update(pretrained_dict)
+            self.load_state_dict(model_dict)
 
 
     def forward(self, input):
@@ -443,7 +439,7 @@ class Yolov4(nn.Module):
         d4 = self.down4(d3)
         d5 = self.down5(d4)
 
-        x20, x13, x6 = self.neek(d5, d4, d3)
+        x20, x13, x6 = self.neck(d5, d4, d3)
 
         output = self.head(x20, x13, x6)
         return output
@@ -457,33 +453,4 @@ class Yolov4(nn.Module):
         self.cuda()
         return
 
-
-if  __name__ == "__main__":
-    import sys
-
-    namesfile = None
-
-    if len(sys.argv) == 5:
-        n_classes = int(sys.argv[1])
-        weightfile = sys.argv[2]
-        videofile = sys.argv[3]
-        namesfile = sys.argv[4]
-    else:
-        print('Usage -> "python models.py num_classes weightfile videofile namefile"')
-
-    model = Yolov4(yolov4conv137weight=None,n_classes=n_classes,inference=True)
-
-    print(torch.device('cuda'))
-
-    pretrained_dict = torch.load(weightfile, map_location=torch.device('cuda'))
-    model.load_state_dict(pretrained_dict)
-
-    if namesfile == None:
-        print("please give namefile")
-
-    use_cuda = 1
-    if use_cuda:
-        model.cuda()
-
-    process_videos_different_confidence(model,videofile,namesfile,[0.1,0.2,0.3,0.4],n_classes)
 

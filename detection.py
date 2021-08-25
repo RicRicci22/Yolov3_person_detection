@@ -2,12 +2,7 @@
 
 from tool.utils import *
 from tool.torch_utils import *
-from tool.darknet2pytorch import Darknet
 from models import Yolov4
-import argparse
-import metrics
-import format_dataset
-import matplotlib.pyplot as plt
 import cv2
 import os
 import time
@@ -196,16 +191,10 @@ if __name__ == '__main__':
     # # PYTORCH
     # # Creating the model
     model = Yolov4(yolov4conv137weight=None,n_classes=80,inference=True)
-    model.load_weights(r'weight\yolov4.pth')
+    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\new_yolov4.pth')
     model.activate_gpu()
 
-    # # DARKNET
-    # # Creating the model
-    # model = Darknet(r'cfg/yolov4.cfg')
-    # model.load_weights(r'C:\Users\farid.melgani\Desktop\master_degree\weight\yolov4.weights')
-    # model.activate_gpu()
-
     # Creating the detector
-    yolov4_detector = Detector(model,True,80,416,416,r'datasets\visdrone\test')
+    yolov4_detector = Detector(model,True,1,1024,1024,r'datasets\visdrone\test')
     pred = yolov4_detector.detect_in_images(0.5)
     yolov4_detector.visualize_predictions(pred)

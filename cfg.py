@@ -24,10 +24,10 @@ Cfg.percentage = 10
 
 Cfg.gpu = 0
 
-Cfg.batch = 32
-Cfg.subdivisions = 16
-Cfg.width = 1088
-Cfg.height = 1088
+Cfg.batch = 2
+Cfg.subdivisions = 1
+Cfg.width = 1024
+Cfg.height = 1024
 Cfg.channels = 3
 Cfg.momentum = 0.949
 Cfg.decay = 0.0005
@@ -36,7 +36,8 @@ Cfg.saturation = 1.5
 Cfg.exposure = 1.5
 Cfg.hue = .1
 
-Cfg.learning_rate = 0.00261
+#Cfg.learning_rate = 0.00261
+Cfg.learning_rate = 0.01
 Cfg.burn_in = 1000
 Cfg.max_batches = 500500
 Cfg.steps = [400000, 450000]
@@ -53,9 +54,9 @@ Cfg.track = 0
 Cfg.flip = True
 Cfg.flip_value = 1 # 0 - x-axis, 1 - y-axis, -1 - both axes (x & y)
 Cfg.blur = 0
-Cfg.gaussian_var = 0.005
-Cfg.boxes = 60  # box num
-Cfg.TRAIN_EPOCHS = 300
+Cfg.gaussian_var = False
+Cfg.boxes = 10  # box num
+Cfg.TRAIN_EPOCHS = 5
 Cfg.train_label = os.path.join(_BASE_DIR, 'datasets','visdrone','train','_annotations.txt')
 Cfg.val_label = os.path.join(_BASE_DIR, 'datasets','visdrone','val','_annotations.txt')
 Cfg.dataset_dir = os.path.join(_BASE_DIR, 'datasets','visdrone','train')
