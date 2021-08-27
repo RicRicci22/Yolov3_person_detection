@@ -344,7 +344,7 @@ class Yolov4Head(nn.Module):
         self.conv8 = Conv_Bn_Activation(512, 256, 1, 1, 'leaky')
         self.conv9 = Conv_Bn_Activation(256, 512, 3, 1, 'leaky')
         self.conv10 = Conv_Bn_Activation(512, output_ch, 1, 1, 'linear', bn=False, bias=True)
-
+        
         self.yolo2 = YoloLayer(
                                 anchor_mask=[3, 4, 5], num_classes=n_classes,
                                 anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
@@ -361,7 +361,7 @@ class Yolov4Head(nn.Module):
         self.conv16 = Conv_Bn_Activation(1024, 512, 1, 1, 'leaky')
         self.conv17 = Conv_Bn_Activation(512, 1024, 3, 1, 'leaky')
         self.conv18 = Conv_Bn_Activation(1024, output_ch, 1, 1, 'linear', bn=False, bias=True)
-
+        
         self.yolo3 = YoloLayer(
                                 anchor_mask=[6, 7, 8], num_classes=n_classes,
                                 anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
@@ -394,14 +394,14 @@ class Yolov4Head(nn.Module):
         x16 = self.conv16(x15)
         x17 = self.conv17(x16)
         x18 = self.conv18(x17)
-
+        
         if self.inference:
             y1 = self.yolo1(x2)
             y2 = self.yolo2(x10)
             y3 = self.yolo3(x18)
 
             return get_region_boxes([y1, y2, y3])
-
+        
         else:
             return [x2, x10, x18]
 
@@ -421,16 +421,15 @@ class Yolov4(nn.Module):
         # neck
         self.neck = Neck(inference)
 
-        # head
-        self.head = Yolov4Head(output_ch, n_classes, inference)
-
         # yolov4conv137
         if yolov4conv137weight:
             pretrained_dict = torch.load(yolov4conv137weight)
             model_dict = self.state_dict()
             model_dict.update(pretrained_dict)
             self.load_state_dict(model_dict)
-
+        
+        # head
+        self.head = Yolov4Head(output_ch, n_classes, inference)
 
     def forward(self, input):
         d1 = self.down1(input)

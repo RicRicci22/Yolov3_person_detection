@@ -12,6 +12,7 @@
 '''
 import os
 import random
+from tool.utils import bbox_iou
 
 import cv2
 import numpy as np
@@ -98,6 +99,8 @@ def fill_truth_detection(bboxes, num_boxes, classes, flip, dx, dy, sx, sy, net_w
         temp_height = net_h - bboxes[:, 1]
         bboxes[:, 1] = net_h - bboxes[:, 3]
         bboxes[:, 3] = temp_height
+    #print(bboxes)
+    #print(min_w_h)
 
     return bboxes, min_w_h
 
@@ -299,7 +302,7 @@ class Yolo_dataset(Dataset):
             cut_x = random.randint(int(self.cfg.width * min_offset), int(self.cfg.width * (1 - min_offset)))
             cut_y = random.randint(int(self.cfg.height * min_offset), int(self.cfg.height * (1 - min_offset)))
 
-        dhue, dsat, dexp, flip, blur = 0, 0, 0, -2, 0
+        dhue, dsat, dexp, flip, blur = 0, 0, 0, 0, 0
         gaussian_noise = 0
 
         out_img = np.zeros([self.cfg.height, self.cfg.width, 3])
@@ -434,6 +437,7 @@ if __name__ == "__main__":
     dataset = Yolo_dataset(Cfg.train_label, Cfg)
     for i in range(100):
         out_img, out_bboxes = dataset.__getitem__(i)
+        print(out_img.shape)
         a = draw_box(out_img.copy(), out_bboxes.astype(np.int32))
         plt.imshow(a.astype(np.int32))
         plt.show()

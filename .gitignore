@@ -152,7 +152,7 @@ Thumbs.db
 # custom created folder
 /video
 # weights and Weightfiles
-*.weights
+*.pth
 weight/
 trained_weights/
 
@@ -166,4 +166,7 @@ log/
 visdrone/
 datasets/
 tests/
+
+# Predictions 
+predictions/
 # End of https://www.toptal.com/developers/gitignore/api/python

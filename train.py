@@ -15,6 +15,8 @@ import logging
 import os, math
 from collections import deque
 
+import matplotlib.pyplot as plt
+
 
 import cv2
 from tqdm import tqdm
@@ -36,11 +38,10 @@ from tool.tv_reference.coco_utils import convert_to_coco_api
 from tool.tv_reference.coco_eval import CocoEvaluator
 
 
-def bboxes_iou(bboxes_a, bboxes_b, xyxy=True, GIoU=False, DIoU=False, CIoU=False):
+def bboxes_iou(bboxes_a, bboxes_b, xyxy=True):
     """Calculate the Intersection of Unions (IoUs) between bounding boxes.
     IoU is calculated as a ratio of area of the intersection
     and area of the union.
-
     Args:
         bbox_a (array): An array whose shape is :math:`(N, 4)`.
             :math:`N` is the number of bounding boxes.
@@ -54,82 +55,31 @@ def bboxes_iou(bboxes_a, bboxes_b, xyxy=True, GIoU=False, DIoU=False, CIoU=False
         An element at index :math:`(n, k)` contains IoUs between \
         :math:`n` th bounding box in :obj:`bbox_a` and :math:`k` th bounding \
         box in :obj:`bbox_b`.
-
     from: https://github.com/chainer/chainercv
-    https://github.com/ultralytics/yolov3/blob/eca5b9c1d36e4f73bf2f94e141d864f1c2739e23/utils/utils.py#L262-L282
     """
     if bboxes_a.shape[1] != 4 or bboxes_b.shape[1] != 4:
         raise IndexError
 
+    # top left
     if xyxy:
-        # intersection top left
-        #print(bboxes_a)
-        #print(bboxes_b)
         tl = torch.max(bboxes_a[:, None, :2], bboxes_b[:, :2])
-        #print(tl)
-        # intersection bottom right
+        # bottom right
         br = torch.min(bboxes_a[:, None, 2:], bboxes_b[:, 2:])
-        # convex (smallest enclosing box) top left and bottom right
-        con_tl = torch.min(bboxes_a[:, None, :2], bboxes_b[:, :2])
-        con_br = torch.max(bboxes_a[:, None, 2:], bboxes_b[:, 2:])
-        # centerpoint distance squared
-        rho2 = ((bboxes_a[:, None, 0] + bboxes_a[:, None, 2]) - (bboxes_b[:, 0] + bboxes_b[:, 2])) ** 2 / 4 + (
-                (bboxes_a[:, None, 1] + bboxes_a[:, None, 3]) - (bboxes_b[:, 1] + bboxes_b[:, 3])) ** 2 / 4
-
-        w1 = bboxes_a[:, 2] - bboxes_a[:, 0]
-        h1 = bboxes_a[:, 3] - bboxes_a[:, 1]
-        w2 = bboxes_b[:, 2] - bboxes_b[:, 0]
-        h2 = bboxes_b[:, 3] - bboxes_b[:, 1]
-
         area_a = torch.prod(bboxes_a[:, 2:] - bboxes_a[:, :2], 1)
         area_b = torch.prod(bboxes_b[:, 2:] - bboxes_b[:, :2], 1)
     else:
-        # intersection top left
         tl = torch.max((bboxes_a[:, None, :2] - bboxes_a[:, None, 2:] / 2),
                        (bboxes_b[:, :2] - bboxes_b[:, 2:] / 2))
-        # intersection bottom right
+        # bottom right
         br = torch.min((bboxes_a[:, None, :2] + bboxes_a[:, None, 2:] / 2),
                        (bboxes_b[:, :2] + bboxes_b[:, 2:] / 2))
 
-        # convex (smallest enclosing box) top left and bottom right
-        con_tl = torch.min((bboxes_a[:, None, :2] - bboxes_a[:, None, 2:] / 2),
-                           (bboxes_b[:, :2] - bboxes_b[:, 2:] / 2))
-        con_br = torch.max((bboxes_a[:, None, :2] + bboxes_a[:, None, 2:] / 2),
-                           (bboxes_b[:, :2] + bboxes_b[:, 2:] / 2))
-        # centerpoint distance squared
-        rho2 = ((bboxes_a[:, None, :2] - bboxes_b[:, :2]) ** 2 / 4).sum(dim=-1)
-
-        w1 = bboxes_a[:, 2]
-        h1 = bboxes_a[:, 3]
-        w2 = bboxes_b[:, 2]
-        h2 = bboxes_b[:, 3]
-
         area_a = torch.prod(bboxes_a[:, 2:], 1)
         area_b = torch.prod(bboxes_b[:, 2:], 1)
-    #print(tl)
-    #print(br)
     en = (tl < br).type(tl.type()).prod(dim=2)
-    #print(en)
-    #print('\n')
     area_i = torch.prod(br - tl, 2) * en  # * ((tl < br).all())
-    area_u = area_a[:, None] + area_b - area_i
-    iou = area_i / area_u
-
-    if GIoU or DIoU or CIoU:
-        if GIoU:  # Generalized IoU https://arxiv.org/pdf/1902.09630.pdf
-            area_c = torch.prod(con_br - con_tl, 2)  # convex area
-            return iou - (area_c - area_u) / area_c  # GIoU
-        if DIoU or CIoU:  # Distance or Complete IoU https://arxiv.org/abs/1911.08287v1
-            # convex diagonal squared
-            c2 = torch.pow(con_br - con_tl, 2).sum(dim=2) + 1e-16
-            if DIoU:
-                return iou - rho2 / c2  # DIoU
-            elif CIoU:  # https://github.com/Zzh-tju/DIoU-SSD-pytorch/blob/master/utils/box/box_utils.py#L47
-                v = (4 / math.pi ** 2) * torch.pow(torch.atan(w1 / h1).unsqueeze(1) - torch.atan(w2 / h2), 2)
-                with torch.no_grad():
-                    alpha = v / (1 - iou + v)
-                return iou - (rho2 / c2 + v * alpha)  # CIoU
-    return iou
+    
+    return area_i / (area_a[:, None] + area_b - area_i)
 
 
 class Yolo_loss(nn.Module):
@@ -137,7 +87,7 @@ class Yolo_loss(nn.Module):
         super(Yolo_loss, self).__init__()
         self.device = device
         self.strides = [8, 16, 32]
-        image_size = 1024
+        image_size = 608
         self.n_classes = n_classes
         self.n_anchors = n_anchors
 
@@ -211,7 +161,7 @@ class Yolo_loss(nn.Module):
             # calculate iou between truth and reference anchors
             #print(truth_box)
             #print(self.ref_anchors[output_id])
-            anchor_ious_all = bboxes_iou(truth_box.cpu(), self.ref_anchors[output_id], CIoU=False) # shape n_truth_box, n_anchor_boxes
+            anchor_ious_all = bboxes_iou(truth_box.cpu(), self.ref_anchors[output_id]) # shape n_truth_box, n_anchor_boxes
             #print(anchor_ious_all)
             """ print('\n',truth_box)
             print(self.ref_anchors[output_id])
@@ -337,7 +287,7 @@ def collate(batch):
     return images, bboxes
 
 
-def train(model, device, config, epochs=5, save_cp=True, log_step=5):
+def train(model, device, config, epochs=5, save_cp=True, log_step=20):
     train_dataset = Yolo_dataset(config.train_label, config, train=True)
     #val_dataset = Yolo_dataset(config.val_label, config, train=False)
 
@@ -354,7 +304,7 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=5):
     
     # learning rate setup
     def burnin_schedule(i):
-        print(i)
+        #print(i)
         if i < config.burn_in:
             factor = pow(i / config.burn_in, 4)
         elif i < config.steps[0]:
@@ -397,6 +347,15 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=5):
                 epoch_step += 1
                 images = batch[0] # shape [batch_size, n_ch, width, height]
                 bboxes = batch[1] # shape [batch_size, n_boxes, box_coord+n_classes]
+                
+                """  immagine = np.array(np.transpose(images[0]*255,(1,2,0)))
+                #print(bboxes[0])
+                for b in bboxes[0]:
+                    img = cv2.rectangle(immagine, (int(b[0]), int(b[1])), (int(b[2]), int(b[3])), (0, 255, 0), 2)
+                plt.imshow(img.astype(np.int32))
+                plt.show()
+                #print(bboxes)
+                #print(images) """
                 
 
                 images = images.to(device=device, dtype=torch.float32)
@@ -534,6 +493,6 @@ if __name__ == '__main__':
         train(model=model,
                 config=cfg,
                 epochs=cfg.TRAIN_EPOCHS,
-                device=device, )
+                device=device)
     except KeyboardInterrupt:
         torch.save(model.state_dict(), 'INTERRUPTED.pth')

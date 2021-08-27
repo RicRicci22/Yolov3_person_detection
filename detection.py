@@ -190,11 +190,11 @@ if __name__ == '__main__':
 
     # # PYTORCH
     # # Creating the model
-    model = Yolov4(yolov4conv137weight=None,n_classes=80,inference=True)
-    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\new_yolov4.pth')
+    model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
+    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\Yolov4_epoch2.pth')
     model.activate_gpu()
 
     # Creating the detector
-    yolov4_detector = Detector(model,True,1,1024,1024,r'datasets\visdrone\test')
-    pred = yolov4_detector.detect_in_images(0.5)
+    yolov4_detector = Detector(model,True,1,608,608,r'datasets\visdrone\test')
+    pred = yolov4_detector.detect_in_images(0.3)
     yolov4_detector.visualize_predictions(pred)
