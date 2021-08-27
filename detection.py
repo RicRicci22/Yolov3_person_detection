@@ -203,9 +203,25 @@ if __name__ == '__main__':
     #yolov4_detector.visualize_predictions(pred)
 
     # Creating metrics object 
-    with open(r'C:\Users\Riccardo\Desktop\TESI MAGISTRALE\Code\master_degree\tests\input_resolution\visdrone\pretrained_pytorch\no_keep_aspect_ratio\predictions_512.pkl',"rb") as f:
+    with open(r'C:\Users\Riccardo\Desktop\TESI MAGISTRALE\Code\master_degree\tests\input_resolution\visdrone\pretrained_pytorch\no_keep_aspect_ratio\predictions_1088.pkl',"rb") as f:
         pred = pickle.load(f)
     
     meter = Metric(r'datasets\visdrone\test\_annotations.txt',ground_truth_dict)
-    precision,recall,f1 = meter.precision_recall(pred,0.5)
-    print(precision,recall,f1)
+    precision,recall,f1 = meter.precision_recall(pred,0.4)
+    small, medium, large = meter.precision_recall_scales(pred,0.4,100,500)
+    print('TOTAL\n')
+    print('Precision: '+str(precision))
+    print('\nRecall: '+str(recall))
+    print('\nF1: '+str(f1))
+    print('\nSmall objects\n')
+    print('Precision: '+str(small[0]))
+    print('\nRecall: '+str(small[1]))
+    print('\nF1: '+str(small[2]))
+    print('\nMedium objects\n')
+    print('Precision: '+str(medium[0]))
+    print('\nRecall: '+str(medium[1]))
+    print('\nF1: '+str(medium[2]))
+    print('\nLarge objects\n')
+    print('Precision: '+str(large[0]))
+    print('\nRecall: '+str(large[1]))
+    print('\nF1: '+str(large[2]))

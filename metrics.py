@@ -89,7 +89,7 @@ class Metric():
 
         return [precision, recall, f1]
 
-    def calculate_precision_recall_small_medium_large(self,predictions_annotations,iou_threhsold, small_threshold, large_threshold):
+    def precision_recall_scales(self,predictions_annotations,iou_threhsold, small_threshold, large_threshold):
         # Function that separates the precision and recall between small, medium and large objects
         # Small : area < 150 pixels
         # Medium : 150 < area < 500 pixels
@@ -97,7 +97,10 @@ class Metric():
         small_dictionary = {}
         medium_dictionary = {}
         large_dictionary = {}
-        for key in predictions_annotations.keys():
+        small_objs = 0
+        medium_objs = 0
+        large_objs = 0 
+        for key in self.ground_truth.keys():
             small_dictionary[key] = []
             medium_dictionary[key] = []
             large_dictionary[key] = []
@@ -107,10 +110,16 @@ class Metric():
                 height = box[2]-box[0]
                 if(width*height<=small_threshold):
                     small_dictionary[key].append(box)
+                    small_objs+=1
                 elif(width*height>=large_threshold):
                     large_dictionary[key].append(box)
+                    large_objs+=1
                 else:
                     medium_dictionary[key].append(box)
+                    medium_objs+=1
+        print('# Small objects: '+str(small_objs))
+        print('# Medium objects: '+str(medium_objs))
+        print('# Large objects: '+str(large_objs))
 
         small_values = self.precision_recall(small_dictionary,iou_threhsold)
         medium_values = self.precision_recall(medium_dictionary,iou_threhsold)
