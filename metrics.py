@@ -34,18 +34,17 @@ class Metric():
 
         return (intersection)/(area_gtruth+area_predicted-intersection)
 
-    def precision_recall(self, predictions_annotations,iou_threshold):
-        # ground_truth_annotations = dictionary with key = image name, value = list of list [[bbox1][bbox2][bbox3]] of g.t. boxes
+    def precision_recall(self, predictions_dict,iou_threshold):
         # iou_threshold = the threshold to define a true positive
         # predicted_annotations = dictionary with key = image name, value = list of list [[bbox1][bbox2][bbox3]] of predicted boxes
         # Calculating IoU over bounding boxes and estimating the metrics
         true_positive = 0
         # Calculating true positive
         for key in self.ground_truth.keys():
-            if(key in predictions_annotations.keys()):
+            if(key in predictions_dict.keys()):
                 for box in  self.ground_truth[key]:
-                    for box2 in predictions_annotations[key]:
-                        if(self.evaluate_IoU(box,box2)>iou_threshold):
+                    for box2 in predictions_dict[key]:
+                        if(self.evaluate_IoU(box, )>iou_threshold):
                             true_positive += 1
                             break
 
@@ -56,11 +55,11 @@ class Metric():
 
         for key in self.ground_truth.keys():
             # So I can take also a subset of a dataset without modifying annotations
-            if(key in predictions_annotations.keys()):
+            if(key in predictions_dict.keys()):
                 tot_g_truth += len(self.ground_truth[key])
 
-        for key in predictions_annotations.keys():
-            tot_pred += len(predictions_annotations[key])
+        for key in predictions_dict.keys():
+            tot_pred += len(predictions_dict[key])
 
 
         # Calculate precision and recall

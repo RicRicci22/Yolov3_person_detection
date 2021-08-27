@@ -91,8 +91,10 @@ class Yolo_loss(nn.Module):
         self.n_classes = n_classes
         self.n_anchors = n_anchors
 
-        self.anchors = [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]]
-        self.anch_masks = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+        #self.anchors = [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]]
+        #self.anch_masks = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+        self.anch_masks= [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+        self.anchors= [[7, 11], [12, 21], [16, 32], [22, 36], [33, 47], [37, 67], [48, 73], [81, 100], [94, 196]]
         self.ignore_thre = 0.5
 
         self.masked_anchors, self.ref_anchors, self.grid_x, self.grid_y, self.anchor_w, self.anchor_h = [], [], [], [], [], []
@@ -100,7 +102,9 @@ class Yolo_loss(nn.Module):
         for i in range(3):
             all_anchors_grid = [(w / self.strides[i], h / self.strides[i]) for w, h in self.anchors]
             #print(all_anchors_grid)
-            masked_anchors = np.array([all_anchors_grid[j] for j in self.anch_masks[i]], dtype=np.float32)
+            masked_anchors = np.array([all_anchors_grid[j] for j in self.anch_masks[i]], dtype=np.float32) # shape 
+            print(masked_anchors.shape)
+            print(masked_anchors)
             #print(masked_anchors)
             ref_anchors = np.zeros((len(all_anchors_grid), 4), dtype=np.float32)
             ref_anchors[:, 2:] = np.array(all_anchors_grid, dtype=np.float32)

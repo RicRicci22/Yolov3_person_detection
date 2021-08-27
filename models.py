@@ -329,8 +329,11 @@ class Yolov4Head(nn.Module):
         self.conv2 = Conv_Bn_Activation(256, output_ch, 1, 1, 'linear', bn=False, bias=True)
 
         self.yolo1 = YoloLayer(
+                                #anchor_mask=[0, 1, 2], num_classes=n_classes,
+                                #anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
                                 anchor_mask=[0, 1, 2], num_classes=n_classes,
-                                anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
+                                anchors=[7, 11, 12, 21, 16, 32, 22, 36, 33, 47, 37, 67, 48, 73, 81, 100, 94, 196],
+                                #anchors=[3,  10, 6, 18, 8, 27, 10, 29, 16, 40, 17, 57, 23, 59, 37, 85, 45, 142],
                                 num_anchors=9, stride=8)
 
         # R -4
@@ -346,8 +349,11 @@ class Yolov4Head(nn.Module):
         self.conv10 = Conv_Bn_Activation(512, output_ch, 1, 1, 'linear', bn=False, bias=True)
         
         self.yolo2 = YoloLayer(
+                                #anchor_mask=[3, 4, 5], num_classes=n_classes,
+                                #anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
                                 anchor_mask=[3, 4, 5], num_classes=n_classes,
-                                anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
+                                anchors=[7, 11, 12, 21, 16, 32, 22, 36, 33, 47, 37, 67, 48, 73, 81, 100, 94, 196],
+                                #anchors=[3,  10, 6, 18, 8, 27, 10, 29, 16, 40, 17, 57, 23, 59, 37, 85, 45, 142],
                                 num_anchors=9, stride=16)
 
         # R -4
@@ -363,8 +369,11 @@ class Yolov4Head(nn.Module):
         self.conv18 = Conv_Bn_Activation(1024, output_ch, 1, 1, 'linear', bn=False, bias=True)
         
         self.yolo3 = YoloLayer(
+                                #anchor_mask=[6, 7, 8], num_classes=n_classes,
+                                #anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
                                 anchor_mask=[6, 7, 8], num_classes=n_classes,
-                                anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
+                                anchors=[7, 11, 12, 21, 16, 32, 22, 36, 33, 47, 37, 67, 48, 73, 81, 100, 94, 196],
+                                #anchors=[3,  10, 6, 18, 8, 27, 10, 29, 16, 40, 17, 57, 23, 59, 37, 85, 45, 142],
                                 num_anchors=9, stride=32)
 
     def forward(self, input1, input2, input3):
