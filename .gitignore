@@ -164,7 +164,6 @@ log/
 .vscode/
 
 # Datasets
-visdrone/
 datasets/
 #tests/
 
