@@ -198,9 +198,9 @@ if __name__ == '__main__':
     #model.activate_gpu()
 
     # Creating the detector
-    #yolov4_detector = Detector(model,True,1,608,608,r'datasets\visdrone\test')
-    #pred = yolov4_detector.detect_in_images(0.4)
-    #yolov4_detector.visualize_predictions(pred)
+    yolov4_detector = Detector(model,True,1,608,608,r'datasets\visdrone\test')
+    pred = yolov4_detector.detect_in_images(0.3)
+    yolov4_detector.visualize_predictions(pred)
 
     # Creating metrics object 
     with open(r'C:\Users\Riccardo\Desktop\TESI MAGISTRALE\Code\master_degree\tests\input_resolution\visdrone\pretrained_pytorch\no_keep_aspect_ratio\predictions_1088.pkl',"rb") as f:

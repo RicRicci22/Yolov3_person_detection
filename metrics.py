@@ -13,7 +13,6 @@ class Metric():
 
     def __str__(self):
         print('Metric object')
-
         return '\nGround truth path: '+str(self.ground_truth_path)
 
     def evaluate_IoU(self, coords_predicted, coords_ground_truth):
@@ -38,7 +37,6 @@ class Metric():
     def precision_recall(self, predictions_dict,iou_threshold):
         # iou_threshold = the threshold to define a true positive
         # predicted_annotations = dictionary with key = image name, value = list of list [[bbox1][bbox2][bbox3]] of predicted boxes
-        # Calculating IoU over bounding boxes and estimating the metrics
         true_positive = 0
         # Calculating true positive
         for key in self.ground_truth.keys():
