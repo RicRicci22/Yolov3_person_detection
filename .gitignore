@@ -153,6 +153,7 @@ Thumbs.db
 /video
 # weights and Weightfiles
 *.pth
+*.weights
 weight/
 trained_weights/
 
