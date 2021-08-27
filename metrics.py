@@ -1,5 +1,6 @@
 import os
 from tool import utils
+import numpy as np 
 # This file will contain some functions to perform metrics on a dataset
 # It will work on sard and visdrone datasets to be more precise.
 
@@ -42,13 +43,22 @@ class Metric():
         # Calculating true positive
         for key in self.ground_truth.keys():
             if(key in predictions_dict.keys()):
-                for box in  self.ground_truth[key]:
-                    for box2 in predictions_dict[key]:
-                        if(self.evaluate_IoU(box, )>iou_threshold):
-                            true_positive += 1
-                            break
-
-
+                # Creating matrix of ious
+                matrix = np.zeros((len(self.ground_truth[key]),len(predictions_dict)))
+                for i in  range(len(self.ground_truth[key])):
+                    for j in range(len(predictions_dict[key])):
+                        matrix[i,j]=self.evaluate_IoU(self.ground_truth[key][i],predictions_dict[key][j])
+                # iterating on the max
+                while(np.amax(matrix)>iou_threshold):
+                    max_value = np.amax(matrix)
+                    max_indices = np.where(matrix == max_value)
+                    true_positive+=1
+                    # Deleting row and column
+                    matrix = np.delete(matrix,max_indices[0][0],0)
+                    matrix = np.delete(matrix,max_indices[1][0],1)
+                    if(matrix.shape[0]==0 or matrix.shape[1]==0):
+                        break
+    
         # Calculate total number of ground truth boxes and total number of predictions
         tot_g_truth = 0
         tot_pred = 0

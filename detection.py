@@ -2,11 +2,14 @@
 
 from metrics import Metric
 from tool.utils import *
-from tool.torch_utils import *
-from models import Yolov4
-import cv2
-import os
-import time
+#from tool.torch_utils import *
+#from models import Yolov4
+#import cv2
+#import os
+#import time
+
+# To delete
+import pickle
 
 class Detector:
     def __init__(self,model,use_cuda,num_classes,input_width,input_height,testset):
@@ -190,16 +193,19 @@ if __name__ == '__main__':
 
     # # PYTORCH
     # # Creating the model
-    model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
-    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\trained_weights\Yolov4_epoch2_changed_anchors.pth')
-    model.activate_gpu()
+    #model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
+    #model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\trained_weights\Yolov4_epoch2_changed_anchors.pth')
+    #model.activate_gpu()
 
     # Creating the detector
-    yolov4_detector = Detector(model,True,1,608,608,r'datasets\visdrone\test')
-    pred = yolov4_detector.detect_in_images(0.4)
-    yolov4_detector.visualize_predictions(pred)
+    #yolov4_detector = Detector(model,True,1,608,608,r'datasets\visdrone\test')
+    #pred = yolov4_detector.detect_in_images(0.4)
+    #yolov4_detector.visualize_predictions(pred)
 
     # Creating metrics object 
+    with open(r'C:\Users\Riccardo\Desktop\TESI MAGISTRALE\Code\master_degree\tests\input_resolution\visdrone\pretrained_pytorch\no_keep_aspect_ratio\predictions_512.pkl',"rb") as f:
+        pred = pickle.load(f)
+    
     meter = Metric(r'datasets\visdrone\test\_annotations.txt',ground_truth_dict)
     precision,recall,f1 = meter.precision_recall(pred,0.5)
     print(precision,recall,f1)
