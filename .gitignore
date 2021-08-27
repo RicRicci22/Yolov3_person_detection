@@ -166,7 +166,7 @@ log/
 # Datasets
 visdrone/
 datasets/
-tests/
+#tests/
 
 # Predictions 
 predictions/

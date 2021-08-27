@@ -1,0 +1,17 @@
+Pytorch yolov4 with pretrained weights. Changing input resolution. Confidence threshold set to 0.5. IoU thrshold set to 0.5. Small obj threshold is 72. Large obj threshold is 242. 
+416x416
+Overall precision: 0  Overall recall: 0.0  Overall f1 score: 0
+512x512
+Overall precision: 0  Overall recall: 0.0  Overall f1 score: 0
+608x608
+Overall precision: 0  Overall recall: 0.0  Overall f1 score: 0
+704x704
+Overall precision: 0.0  Overall recall: 0.0  Overall f1 score: 0
+800x800
+Overall precision: 0  Overall recall: 0.0  Overall f1 score: 0
+896x896
+Overall precision: 0  Overall recall: 0.0  Overall f1 score: 0
+992x992
+Overall precision: 0.0  Overall recall: 0.0  Overall f1 score: 0
+1088x1088
+Overall precision: 0.0  Overall recall: 0.0  Overall f1 score: 0
