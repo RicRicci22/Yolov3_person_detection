@@ -5,6 +5,7 @@ Next steps:
 - [X] correct precision recall calculation 
 - [X] small medium large objects precision recall calculation 
 - [ ] insert calculation for AP
+
 Tests:
 - [ ] customizing anchor boxes 
 - [ ] adding a detection layer if needed 
