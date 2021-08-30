@@ -1,4 +1,3 @@
-import sys
 import os
 import time
 import math
@@ -256,7 +255,6 @@ def parse_gtruth(gt_path):
     return ground_truth_dict
 
 def keep_ratio(img,dimension):
-    # TODO in training RANDOM padding top bottom right left
     height,width,_= img.shape
     if(height>width):
         ratio = width/height

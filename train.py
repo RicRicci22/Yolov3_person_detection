@@ -12,10 +12,8 @@
 '''
 import time
 import logging
-import os, math
+import os
 from collections import deque
-
-import matplotlib.pyplot as plt
 
 
 import cv2
@@ -36,6 +34,8 @@ from models import Yolov4
 from tool.tv_reference.utils import collate_fn as val_collate
 from tool.tv_reference.coco_utils import convert_to_coco_api
 from tool.tv_reference.coco_eval import CocoEvaluator
+
+#from tool.utils_iou import bboxes_iou
 
 
 def bboxes_iou(bboxes_a, bboxes_b, xyxy=True):
@@ -87,14 +87,14 @@ class Yolo_loss(nn.Module):
         super(Yolo_loss, self).__init__()
         self.device = device
         self.strides = [8, 16, 32]
-        image_size = 704
+        image_size = 608
         self.n_classes = n_classes
         self.n_anchors = n_anchors
 
-        #self.anchors = [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]]
+        self.anchors = [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]]
         #self.anch_masks = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
         self.anch_masks= [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
-        self.anchors= [[7, 11], [12, 21], [16, 32], [22, 36], [33, 47], [37, 67], [48, 73], [81, 100], [94, 196]]
+        #self.anchors= [[7, 11], [12, 21], [16, 32], [22, 36], [33, 47], [37, 67], [48, 73], [81, 100], [94, 196]]
         self.ignore_thre = 0.5
 
         self.masked_anchors, self.ref_anchors, self.grid_x, self.grid_y, self.anchor_w, self.anchor_h = [], [], [], [], [], []

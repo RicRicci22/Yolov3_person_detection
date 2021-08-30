@@ -1,31 +1,14 @@
-# -*- coding: utf-8 -*-
-'''
-
-'''
 import torch
-import os, sys
 from torch.nn import functional as F
 
 import numpy as np
-from packaging import version
 
 
-__all__ = [
-    "bboxes_iou",
-    "bboxes_giou",
-    "bboxes_diou",
-    "bboxes_ciou",
-]
+def _true_divide(dividend, divisor):
+    return torch.true_divide(dividend, divisor)
 
 
-if version.parse(torch.__version__) >= version.parse('1.5.0'):
-    def _true_divide(dividend, divisor):
-        return torch.true_divide(dividend, divisor)
-else:
-    def _true_divide(dividend, divisor):
-        return dividend / divisor
-
-def bboxes_iou(bboxes_a, bboxes_b, fmt='voc', iou_type='iou'):
+def bboxes_iou(bboxes_a, bboxes_b, fmt='yolo', iou_type='iou'):
     """Calculate the Intersection of Unions (IoUs) between bounding boxes.
     IoU is calculated as a ratio of area of the intersection
     and area of the union.
@@ -171,16 +154,6 @@ def bboxes_iou(bboxes_a, bboxes_b, fmt='voc', iou_type='iou'):
     if iou_type.lower() == 'diou':
         return diou
 
-    """ the legacy custom cosine similarity:
-
-    # bb_a of shape `(N,2)`, bb_b of shape `(K,2)`
-    v = torch.einsum('nm,km->nk', bb_a, bb_b)
-    v = _true_divide(v, (torch.norm(bb_a, p='fro', dim=1)[:,np.newaxis] * torch.norm(bb_b, p='fro', dim=1)))
-    # avoid nan for torch.acos near \pm 1
-    # https://github.com/pytorch/pytorch/issues/8069
-    eps = 1e-7
-    v = torch.clamp(v, -1+eps, 1-eps)
-    """
     v = F.cosine_similarity(bb_a[:,np.newaxis,:], bb_b, dim=-1)
     v = (_true_divide(2*torch.acos(v), np.pi)).pow(2)
     with torch.no_grad():
@@ -191,14 +164,3 @@ def bboxes_iou(bboxes_a, bboxes_b, fmt='voc', iou_type='iou'):
     if iou_type.lower() == 'ciou':
         return ciou
 
-
-def bboxes_giou(bboxes_a, bboxes_b, fmt='voc'):
-    return bboxes_iou(bboxes_a, bboxes_b, fmt, 'giou')
-
-
-def bboxes_diou(bboxes_a, bboxes_b, fmt='voc'):
-    return bboxes_iou(bboxes_a, bboxes_b, fmt, 'diou')
-
-
-def bboxes_ciou(bboxes_a, bboxes_b, fmt='voc'):
-    return bboxes_iou(bboxes_a, bboxes_b, fmt, 'ciou')

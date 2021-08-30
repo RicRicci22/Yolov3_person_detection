@@ -11,25 +11,19 @@ import time
 import pickle
 
 class Detector:
-    def __init__(self,model,use_cuda,num_classes,input_width,input_height,testset):
+    def __init__(self,model,use_cuda,input_width,input_height,testset):
         self.model = model
         self.use_cuda = use_cuda
-        self.num_classes = num_classes
         self.testset = testset # Path to the folder containing the testset over which to perform detections
         self.input_width = input_width
         self.input_height = input_height
         # cfgfile can be None cause it's used only when using Darknet configuration file!
         # Find namesfile
-        if num_classes == 20:
-            self.namesfile = 'data/voc.names'
-        elif num_classes == 80:
-            self.namesfile = 'data/coco.names'
-        else:
-            self.namesfile = 'data/custom_names.names'
+        self.namesfile = 'data/custom_names.names'
 
     def __str__(self):
         print('Detector object')
-        print('Num. classes: ',self.num_classes)
+        print('Num. classes: 1')
         print('Testset path: ',self.testset)
         print('Model: ',self.model)
         if(self.cfgfile):
@@ -38,60 +32,60 @@ class Detector:
         return 'Cuda acceleration?: '+str(self.use_cuda)
 
 
-    def process_all_videos(self, video_folder, confidence):
-        import os
-        import fnmatch
+    # def process_all_videos(self, video_folder, confidence):
+    #     import os
+    #     import fnmatch
 
-        # Enter the folder with the two videos and get only .mp4 files
-        videos = fnmatch.filter(os.listdir(video_folder), '*.mp4')
-        i=0
-        for video in videos:
-            i=i+1
-            print('Processing video',i,'out of',len(videos))
-            cap = cv2.VideoCapture(video_folder + '/' + video)
-            # Get info on video
-            fps = cap.get(cv2.CAP_PROP_FPS)
-            frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    #     # Enter the folder with the two videos and get only .mp4 files
+    #     videos = fnmatch.filter(os.listdir(video_folder), '*.mp4')
+    #     i=0
+    #     for video in videos:
+    #         i=i+1
+    #         print('Processing video',i,'out of',len(videos))
+    #         cap = cv2.VideoCapture(video_folder + '/' + video)
+    #         # Get info on video
+    #         fps = cap.get(cv2.CAP_PROP_FPS)
+    #         frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-            cap.set(3, 1280)
-            cap.set(4, 720)
-            print("Starting the YOLO loop...")
-            print(m.width)
-            print(m.height)
-            # Loading class names
-            class_names = load_class_names(self.namesfile)
-            # Object to save the video
-            width= int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            height= int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    #         cap.set(3, 1280)
+    #         cap.set(4, 720)
+    #         print("Starting the YOLO loop...")
+    #         print(m.width)
+    #         print(m.height)
+    #         # Loading class names
+    #         class_names = load_class_names(self.namesfile)
+    #         # Object to save the video
+    #         width= int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    #         height= int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-            writer= cv2.VideoWriter(video_folder+'/result '+video, 0x00000021, fps, (width,height))
-            n_frame = 1
-            start = time.time()
-            while (n_frame<=frame_count):
-                print('Processing frame',n_frame,'out of',frame_count)
-                ret, img = cap.read()
-                sized = cv2.resize(img, (m.width, m.height))
-                sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
+    #         writer= cv2.VideoWriter(video_folder+'/result '+video, 0x00000021, fps, (width,height))
+    #         n_frame = 1
+    #         start = time.time()
+    #         while (n_frame<=frame_count):
+    #             print('Processing frame',n_frame,'out of',frame_count)
+    #             ret, img = cap.read()
+    #             sized = cv2.resize(img, (m.width, m.height))
+    #             sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
 
-                #start = time.time()
-                boxes = do_detect(self.model, sized, confidence, self.num_classes, 0.4, self.use_cuda)
-                #finish = time.time()
-                #print('Predicted in %f seconds.' % (finish - start))
+    #             #start = time.time()
+    #             boxes = do_detect(self.model, sized, confidence, self.num_classes, 0.4, self.use_cuda)
+    #             #finish = time.time()
+    #             #print('Predicted in %f seconds.' % (finish - start))
 
-                result_img = plot_boxes_cv2(img, boxes, savename=None, class_names=class_names)
+    #             result_img = plot_boxes_cv2(img, boxes, savename=None, class_names=class_names)
 
-                # cv2.imshow('Yolo demo', result_img)
-                writer.write(result_img)
-                cv2.waitKey(1)
-                n_frame=n_frame+1
-            finish = time.time()
-            # Printing average FPS in a txt file inside the folder
-            # TODO
-            f = open(video_folder+"/average_FPS.txt", "a")
-            f.write(video+'-->'+str(round(frame_count/(finish-start),1))+'FPS\n')
-            f.close
-            cap.release()
-            writer.release()
+    #             # cv2.imshow('Yolo demo', result_img)
+    #             writer.write(result_img)
+    #             cv2.waitKey(1)
+    #             n_frame=n_frame+1
+    #         finish = time.time()
+    #         # Printing average FPS in a txt file inside the folder
+    #         # TODO
+    #         f = open(video_folder+"/average_FPS.txt", "a")
+    #         f.write(video+'-->'+str(round(frame_count/(finish-start),1))+'FPS\n')
+    #         f.close
+    #         cap.release()
+    #         writer.release()
 
     def detect_in_images(self,confidence, keep_aspect_ratio=False, output_file=False):
         # Perform prediction using yolov4 pytorch implementation
@@ -193,20 +187,20 @@ if __name__ == '__main__':
     # PYTORCH
     # Creating the model
     model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
-    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\trained_weights\Yolov4_epoch10.pth')
+    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\prova.pth')
     model.activate_gpu()
 
-    # # Creating the detector
-    # yolov4_detector = Detector(model,True,1,608,608,r'datasets\visdrone\test')
-    # pred = yolov4_detector.detect_in_images(0.2)
-    # yolov4_detector.visualize_predictions(pred)
+    # Creating the detector
+    yolov4_detector = Detector(model,True,608,608,r'datasets\visdrone\test')
+    pred = yolov4_detector.detect_in_images(0.4)
+    yolov4_detector.visualize_predictions(pred)
 
     # Creating metrics object 
-    with open(r'C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone\trained_weights\predictions_1088.pkl',"rb") as f:
-        pred = pickle.load(f)
+    # with open(r'C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone\trained_weights\predictions_1088.pkl',"rb") as f:
+    #     pred = pickle.load(f)
     
     meter = Metric(r'datasets\visdrone\test\_annotations.txt',ground_truth_dict)
-    metriche = meter.precision_recall(pred,0.3)
+    metriche = meter.precision_recall(pred,0.5)
     #small, medium, large = meter.precision_recall_scales(pred,0.4,100,500)
     print('TOTAL')
     print('Precision: '+str(metriche[0]))

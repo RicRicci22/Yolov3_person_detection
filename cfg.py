@@ -26,8 +26,8 @@ Cfg.gpu = 0
 
 Cfg.batch = 2
 Cfg.subdivisions = 1
-Cfg.width = 416
-Cfg.height = 416
+Cfg.width = 608
+Cfg.height = 608
 Cfg.channels = 3
 Cfg.momentum = 0.949
 Cfg.decay = 0.0005
