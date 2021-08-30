@@ -2,13 +2,12 @@
 
 from metrics import Metric
 from tool.utils import *
-#from tool.torch_utils import *
-#from models import Yolov4
-#import cv2
-#import os
-#import time
+from tool.torch_utils import *
+from models import Yolov4
+import cv2
+import os
+import time
 
-# To delete
 import pickle
 
 class Detector:
@@ -191,37 +190,34 @@ if __name__ == '__main__':
     # Parsing ground truth
     ground_truth_dict = parse_gtruth(r'datasets\visdrone\test\_annotations.txt')
 
-    # # PYTORCH
-    # # Creating the model
-    #model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
-    #model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\trained_weights\Yolov4_epoch2_changed_anchors.pth')
-    #model.activate_gpu()
+    # PYTORCH
+    # Creating the model
+    model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
+    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\trained_weights\Yolov4_epoch10.pth')
+    model.activate_gpu()
 
-    # Creating the detector
-    yolov4_detector = Detector(model,True,1,608,608,r'datasets\visdrone\test')
-    pred = yolov4_detector.detect_in_images(0.3)
-    yolov4_detector.visualize_predictions(pred)
+    # # Creating the detector
+    # yolov4_detector = Detector(model,True,1,608,608,r'datasets\visdrone\test')
+    # pred = yolov4_detector.detect_in_images(0.2)
+    # yolov4_detector.visualize_predictions(pred)
 
     # Creating metrics object 
-    with open(r'C:\Users\Riccardo\Desktop\TESI MAGISTRALE\Code\master_degree\tests\input_resolution\visdrone\pretrained_pytorch\no_keep_aspect_ratio\predictions_1088.pkl',"rb") as f:
+    with open(r'C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone\trained_weights\predictions_1088.pkl',"rb") as f:
         pred = pickle.load(f)
     
     meter = Metric(r'datasets\visdrone\test\_annotations.txt',ground_truth_dict)
-    precision,recall,f1 = meter.precision_recall(pred,0.4)
-    small, medium, large = meter.precision_recall_scales(pred,0.4,100,500)
-    print('TOTAL\n')
-    print('Precision: '+str(precision))
-    print('\nRecall: '+str(recall))
-    print('\nF1: '+str(f1))
-    print('\nSmall objects\n')
-    print('Precision: '+str(small[0]))
-    print('\nRecall: '+str(small[1]))
-    print('\nF1: '+str(small[2]))
-    print('\nMedium objects\n')
-    print('Precision: '+str(medium[0]))
-    print('\nRecall: '+str(medium[1]))
-    print('\nF1: '+str(medium[2]))
-    print('\nLarge objects\n')
-    print('Precision: '+str(large[0]))
-    print('\nRecall: '+str(large[1]))
-    print('\nF1: '+str(large[2]))
+    metriche = meter.precision_recall(pred,0.3)
+    #small, medium, large = meter.precision_recall_scales(pred,0.4,100,500)
+    print('TOTAL')
+    print('Precision: '+str(metriche[0]))
+    print('Recall: '+str(metriche[1]))
+    print('F1: '+str(metriche[2]))
+    print('\nSmall objects')
+    print('Predicted: '+str(metriche[3]))
+    print('Recall: '+str(metriche[4]))
+    print('\nMedium objects')
+    print('Predicted: '+str(metriche[5]))
+    print('Recall: '+str(metriche[6]))
+    print('\nLarge objects')
+    print('Predicted: '+str(metriche[7]))
+    print('Recall: '+str(metriche[8]))

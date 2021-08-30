@@ -13,14 +13,14 @@ import pickle
 # Parameters:
 # Darknet with pretrained weights. Changing input resolution. Confidence threshold set to 0.5. IoU thrshold set to 0.5.
 # Objective -> get precision and recall for each input resolution on the complete VISDRONE test set and write it on a txtfile. Also get precision, recall for small medium and large objects on the complete visdrone.
-#resolutions = [416,512,608,704,800,896,992,1088]
-resolutions = [608]
+resolutions = [416,512,608,704,800,896,992,1088]
+#resolutions = [608]
 anno_path = r'datasets\visdrone\test\_annotations.txt'
 ground_truth_dict = parse_gtruth(anno_path)
 # DARKNET
 # Creating the model
 model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
-model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\trained_weights\Yolov4_epoch1.pth')
+model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\trained_weights\Yolov4_epoch10.pth')
 model.activate_gpu()
 # Creating element to measure metrics
 metrica = Metric(anno_path,ground_truth_dict)
@@ -41,7 +41,7 @@ for resolution in resolutions:
     #print(predictions)
     filehandler = open(r'tests\input_resolution\visdrone\trained_weights\predictions_'+str(resolution)+'.pkl', 'wb')
     pickle.dump(predictions, filehandler)
-    overall_values = metrica.precision_recall(predictions,0.4)
+    overall_values = metrica.precision_recall(predictions,0.1)
     #small_values, medium_values, large_values = metrica.calculate_precision_recall_small_medium_large(predictions,0.5,72,242)
     # Saving values
     file.write(str(resolution)+'x'+str(resolution)+'\n')

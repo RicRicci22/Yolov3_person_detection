@@ -87,7 +87,7 @@ class Yolo_loss(nn.Module):
         super(Yolo_loss, self).__init__()
         self.device = device
         self.strides = [8, 16, 32]
-        image_size = 608
+        image_size = 704
         self.n_classes = n_classes
         self.n_anchors = n_anchors
 

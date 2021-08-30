@@ -26,8 +26,8 @@ Cfg.gpu = 0
 
 Cfg.batch = 2
 Cfg.subdivisions = 1
-Cfg.width = 608
-Cfg.height = 608
+Cfg.width = 416
+Cfg.height = 416
 Cfg.channels = 3
 Cfg.momentum = 0.949
 Cfg.decay = 0.0005
@@ -46,8 +46,8 @@ Cfg.scales = .1, .1
 
 Cfg.cutmix = 0
 Cfg.mosaic = 0
+Cfg.mixup_images = 1
 
-Cfg.letter_box = 0
 Cfg.jitter = 0.2
 Cfg.classes = 1
 Cfg.track = 0
@@ -70,6 +70,9 @@ elif Cfg.mosaic:
     Cfg.mixup = 3
 else:
     Cfg.mixup = 0 
+
+if(Cfg.mixup_images):
+    Cfg.mixup = 1
 
 Cfg.checkpoints = os.path.join(_BASE_DIR, 'checkpoints')
 Cfg.TRAIN_TENSORBOARD_DIR = os.path.join(_BASE_DIR, 'log')

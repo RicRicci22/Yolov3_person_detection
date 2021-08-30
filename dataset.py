@@ -32,7 +32,7 @@ def rand_uniform_strong(min, max):
 
 def rand_scale(s):
     scale = rand_uniform_strong(1, s)
-    if random.randint(0, 1) % 2:
+    if random.randint(0, 1):
         return scale
     return 1. / scale
 
@@ -318,7 +318,7 @@ class Yolo_dataset(Dataset):
             if img is None:
                 continue
             oh, ow, oc = img.shape
-            dh, dw, dc = np.array(np.array([oh, ow, oc]) * self.cfg.jitter, dtype=np.int)
+            dh, dw, _ = np.array(np.array([oh, ow, oc]) * self.cfg.jitter, dtype=np.int)
 
             dhue = rand_uniform_strong(-self.cfg.hue, self.cfg.hue)
             dsat = rand_scale(self.cfg.saturation)
@@ -348,24 +348,6 @@ class Yolo_dataset(Dataset):
             else:
                 gaussian_noise = 0
 
-            if self.cfg.letter_box:
-                img_ar = ow / oh
-                net_ar = self.cfg.width / self.cfg.height
-                result_ar = img_ar / net_ar
-                # print(" ow = %d, oh = %d, w = %d, h = %d, img_ar = %f, net_ar = %f, result_ar = %f \n", ow, oh, w, h, img_ar, net_ar, result_ar);
-                if result_ar > 1:  # sheight - should be increased
-                    oh_tmp = ow / net_ar
-                    delta_h = (oh_tmp - oh) / 2
-                    ptop = ptop - delta_h
-                    pbot = pbot - delta_h
-                    # print(" result_ar = %f, oh_tmp = %f, delta_h = %d, ptop = %f, pbot = %f \n", result_ar, oh_tmp, delta_h, ptop, pbot);
-                else:  # swidth - should be increased
-                    ow_tmp = oh * net_ar
-                    delta_w = (ow_tmp - ow) / 2
-                    pleft = pleft - delta_w
-                    pright = pright - delta_w
-                    # printf(" result_ar = %f, ow_tmp = %f, delta_w = %d, pleft = %f, pright = %f \n", result_ar, ow_tmp, delta_w, pleft, pright);
-
             swidth = ow - pleft - pright
             sheight = oh - ptop - pbot
 
@@ -385,7 +367,7 @@ class Yolo_dataset(Dataset):
                     old_img = ai.copy()
                     old_truth = truth.copy()
                 elif i == 1:
-                    out_img = cv2.addWeighted(ai, 0.5, old_img, 0.5)
+                    out_img = cv2.addWeighted(ai, 0.5, old_img, 0.5, 0.2)
                     out_bboxes = np.concatenate([old_truth, truth], axis=0)
             elif use_mixup == 3:
                 if flip==1:
