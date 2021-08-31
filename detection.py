@@ -2,8 +2,8 @@
 
 from metrics import Metric
 from tool.utils import *
-from tool.torch_utils import *
-from models import Yolov4
+#from tool.torch_utils import *
+#from models import Yolov4
 import cv2
 import os
 import time
@@ -188,22 +188,24 @@ if __name__ == '__main__':
 
     # PYTORCH
     # Creating the model
-    model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
-    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\prova.pth')
-    model.activate_gpu()
+    # model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
+    # model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\prova.pth')
+    # model.activate_gpu()
 
-    # Creating the detector
-    yolov4_detector = Detector(model,True,608,608,r'datasets\visdrone\test')
-    pred = yolov4_detector.detect_in_images(0.4)
-    yolov4_detector.visualize_predictions(pred)
+    # # Creating the detector
+    # yolov4_detector = Detector(model,True,608,608,r'datasets\visdrone\test')
+    # pred = yolov4_detector.detect_in_images(0.4)
+    # yolov4_detector.visualize_predictions(pred)
 
     #Creating metrics object 
-    # with open(r'C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\sard\trained_weights\predictions_800.pkl',"rb") as f:
-    #     pred = pickle.load(f)
+    with open(r'C:\Users\Riccardo\Desktop\TESI MAGISTRALE\Code\master_degree\tests\predictions_608.pkl',"rb") as f:
+        pred = pickle.load(f)
+    
+    #print(pred)
 
     meter = Metric(r'datasets\sard\test\_annotations.txt',ground_truth_dict)
     metriche = meter.precision_recall(pred,0.5)
-    #small, medium, large = meter.precision_recall_scales(pred,0.4,100,500)
+    meter.calculate_precision_recall_lists(pred,0.1)
     print('TOTAL')
     print('Precision: '+str(metriche[0]))
     print('Recall: '+str(metriche[1]))

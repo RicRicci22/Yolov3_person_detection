@@ -1,6 +1,5 @@
-import os
-from tool import utils
 import numpy as np 
+import matplotlib.pyplot as plt
 # This file will contain some functions to perform metrics on a dataset
 # It will work on sard and visdrone datasets to be more precise.
 
@@ -113,14 +112,23 @@ class Metric():
         
         if(tot_g_truth!=0):
             recall = true_positive/tot_g_truth
-            small_recall = small_positive/small_g_truth
-            medium_recall = medium_positive/medium_g_truth
-            large_recall = large_positive/large_g_truth
         else:
             recall = 0
+
+        if(small_g_truth!=0):
+            small_recall = small_positive/small_g_truth
+        else:
             small_recall = 0
-            medium_recall = 0 
-            large_recall = 0 
+
+        if(medium_g_truth!=0):
+            medium_recall = medium_positive/medium_g_truth
+        else:
+            medium_recall = 0
+
+        if(large_g_truth!=0):
+            large_recall = large_positive/large_g_truth
+        else:
+            large_recall = 0
 
         if(precision+recall!=0):
             f1 = (2*precision*recall)/(precision+recall)
@@ -143,27 +151,22 @@ class Metric():
         recall_list = []
         list_of_predictions = []
         # Ordering the predictions by confidence in a list
-        for key, value in predictions_list.items():
+        for key, value in predictions_dict.items():
             for index in range(len(value)):
-                list_of_predictions.append((key,index,value[index][4])) 
-        for prediction in predictions_list:
-            values = self.precision_recall(prediction,iou_threshold)
-            if(values[0]==0 and values[1]==0):
-                break
+                list_of_predictions.append((key,index,value[index][5])) 
+        ordered_list_prediction = sorted(list_of_predictions, key=lambda x: x[2],reverse=True)
+        # Creating new prediction dict, inserting one bbox at a time
+        new_pred_dict = {}
+        for bbox in ordered_list_prediction:
+            if(bbox[0] in new_pred_dict):
+                new_pred_dict[bbox[0]].append(predictions_dict[bbox[0]][bbox[1]])
             else:
-                precision_list.append(values[0])
-                recall_list.append(values[1])
-        return precision_list, recall_list
-
-
-    def plot_precision_recall_curve(self, precision_list, recall_list, save_plot=False, save_path=None):
-        import matplotlib.pyplot as plt
-        # Function that plots precision recall values for different confidences to create a curve
-        # INPUT
-        # precision_list = list of precision values
-        # recall_list = list of recall values
-        # save_plot = if True the function will save the precision recall curve in the specified path
-        # save_path = path where to save the plot
+                new_pred_dict[bbox[0]] = [predictions_dict[bbox[0]][bbox[1]]]
+            # Every time calculate precision recall etc
+            metr_values = self.precision_recall(new_pred_dict,iou_threshold)
+            precision_list.append(metr_values[0])
+            recall_list.append(metr_values[1])
+        
         plt.plot(precision_list,recall_list)
         plt.title('Precision-Recall Curve')
         plt.xlabel('Precision')
