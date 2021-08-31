@@ -46,9 +46,9 @@ Cfg.scales = .1, .1
 
 Cfg.cutmix = 0
 Cfg.mosaic = 0
-Cfg.mixup_images = 1
+Cfg.mixup_images = 0
 
-Cfg.jitter = 0.2
+Cfg.jitter = 0
 Cfg.classes = 1
 Cfg.track = 0
 Cfg.flip = True

@@ -114,7 +114,7 @@ class Detector:
                         sized = cv2.resize(img, (self.input_width, self.input_height))
                         sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
                     # perform detection
-                    boxes = do_detect(self.model, sized, confidence, 0.4, self.use_cuda)
+                    boxes = do_detect(self.model, sized, confidence, 0.4, self.use_cuda,print_time=False)
                     # Process boxes to keep only people (boxes[0]) cause in detection batch = 1!!!!
                     new_boxes = [box for box in boxes[0] if box[6]==0]
                     if(output_file):

@@ -99,8 +99,6 @@ def fill_truth_detection(bboxes, num_boxes, classes, flip, dx, dy, sx, sy, net_w
         temp_height = net_h - bboxes[:, 1]
         bboxes[:, 1] = net_h - bboxes[:, 3]
         bboxes[:, 3] = temp_height
-    #print(bboxes)
-    #print(min_w_h)
 
     return bboxes, min_w_h
 
@@ -360,9 +358,11 @@ class Yolo_dataset(Dataset):
                                          dhue, dsat, dexp, gaussian_noise, blur, truth)
 
             if use_mixup == 0:
+                # NOTHING
                 out_img = ai
                 out_bboxes = truth
             if use_mixup == 1:
+                # MIXUP
                 if i == 0:
                     old_img = ai.copy()
                     old_truth = truth.copy()
@@ -419,7 +419,6 @@ if __name__ == "__main__":
     dataset = Yolo_dataset(Cfg.train_label, Cfg)
     for i in range(100):
         out_img, out_bboxes = dataset.__getitem__(i)
-        print(out_img.shape)
         a = draw_box(out_img.copy(), out_bboxes.astype(np.int32))
         plt.imshow(a.astype(np.int32))
         plt.show()

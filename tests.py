@@ -29,7 +29,7 @@ file = open(r'tests\input_resolution\sard\trained_weights\test.txt','w')
 for resolution in resolutions:
     # Creating the detector
     print('Calculating for resolution '+str(resolution)+'x'+str(resolution))
-    yolov4_detector = Detector(model,True,1,resolution,resolution,r'datasets\sard\test')
+    yolov4_detector = Detector(model,True,resolution,resolution,r'datasets\sard\test')
     predictions = yolov4_detector.detect_in_images(0.4,True)
     #print(predictions)
     filehandler = open(r'tests\input_resolution\sard\trained_weights\predictions_'+str(resolution)+'.pkl', 'wb')
