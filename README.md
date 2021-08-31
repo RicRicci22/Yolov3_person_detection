@@ -4,7 +4,8 @@ A repository to keep track of the work for my master degree
 Next steps:
 - [X] correct precision recall calculation 
 - [X] small medium large objects precision recall calculation 
-- [ ] insert calculation for AP, APsmall medium large and the same for AR
+- [X] insert calculation for AP and AR
+- [ ] insert calculation for AP small medium large and the same for AR 
 - [ ] insert validation using training
 
 Tests:
