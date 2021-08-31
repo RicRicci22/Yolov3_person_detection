@@ -2,11 +2,11 @@
 
 from metrics import Metric
 from tool.utils import *
-# from tool.torch_utils import *
-# from models import Yolov4
-# import cv2
-# import os
-# import time
+from tool.torch_utils import *
+from models import Yolov4
+import cv2
+import os
+import time
 
 import pickle
 
@@ -116,7 +116,7 @@ class Detector:
                     # perform detection
                     boxes = do_detect(self.model, sized, confidence, 0.4, self.use_cuda,print_time=False)
                     # Process boxes to keep only people (boxes[0]) cause in detection batch = 1!!!!
-                    new_boxes = [box for box in boxes[0] if box[6]==0]
+                    new_boxes = [box for box in boxes[0] if box[5]==0]
                     if(output_file):
                         detections.write(filename)
                     predictions_dict[filename] = []
@@ -134,13 +134,13 @@ class Detector:
                             x2=original_width
                         if(y2>original_height):
                             y2=original_height
-                        print(box[4])
-                        print(box[5])
-                        obj_class = box[6] #0 means person
+                        obj_conf = box[4]
+                        obj_class = box[5] # 0 means person
+                        
                         # Insert prediction
                         if(output_file):
-                            detections.write(' '+str(x1)+','+str(y1)+','+str(x2)+','+str(y2)+','+str(obj_class))
-                        predictions_dict[filename].append([x1,y1,x2,y2,obj_class])
+                            detections.write(' '+str(x1)+','+str(y1)+','+str(x2)+','+str(y2)+','+str(obj_class)+','+str(obj_conf))
+                        predictions_dict[filename].append([x1,y1,x2,y2,obj_class,obj_conf])
                     if(output_file):
                         detections.write('\n')
         t1 = time.time()
@@ -188,20 +188,19 @@ if __name__ == '__main__':
 
     # PYTORCH
     # Creating the model
-    # model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
-    # model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\prova.pth')
-    # model.activate_gpu()
+    model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
+    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\prova.pth')
+    model.activate_gpu()
 
-    # # Creating the detector
-    # yolov4_detector = Detector(model,True,608,608,r'datasets\visdrone\test')
-    # pred = yolov4_detector.detect_in_images(0.4)
-    # yolov4_detector.visualize_predictions(pred)
+    # Creating the detector
+    yolov4_detector = Detector(model,True,608,608,r'datasets\visdrone\test')
+    pred = yolov4_detector.detect_in_images(0.4)
+    yolov4_detector.visualize_predictions(pred)
 
     #Creating metrics object 
-    with open(r'C:\Users\Riccardo\Desktop\TESI MAGISTRALE\Code\master_degree\tests\predictions_800.pkl',"rb") as f:
-        pred = pickle.load(f)
-    
-    print(pred)
+    # with open(r'C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\sard\trained_weights\predictions_800.pkl',"rb") as f:
+    #     pred = pickle.load(f)
+
     meter = Metric(r'datasets\sard\test\_annotations.txt',ground_truth_dict)
     metriche = meter.precision_recall(pred,0.5)
     #small, medium, large = meter.precision_recall_scales(pred,0.4,100,500)

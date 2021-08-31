@@ -12,8 +12,8 @@ import pickle
 # Parameters:
 # Darknet with pretrained weights. Changing input resolution. Confidence threshold set to 0.4. IoU threshold set to 0.5.
 # Objective -> get precision and recall for each input resolution on the complete VISDRONE test set and write it on a txtfile. Also get precision, recall for small medium and large objects on the complete visdrone.
-resolutions = [416,512,608,704,800,896,992,1088]
-#resolutions = [608]
+#resolutions = [416,512,608,704,800,896,992,1088]
+resolutions = [608]
 anno_path = r'datasets\sard\test\_annotations.txt'
 ground_truth_dict = parse_gtruth(anno_path)
 # DARKNET
