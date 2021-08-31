@@ -2,11 +2,11 @@
 
 from metrics import Metric
 from tool.utils import *
-from tool.torch_utils import *
-from models import Yolov4
-import cv2
-import os
-import time
+# from tool.torch_utils import *
+# from models import Yolov4
+# import cv2
+# import os
+# import time
 
 import pickle
 
@@ -87,7 +87,7 @@ class Detector:
     #         cap.release()
     #         writer.release()
 
-    def detect_in_images(self,confidence, keep_aspect_ratio=False, output_file=False):
+    def detect_in_images(self, confidence, keep_aspect_ratio=False, output_file=False):
         # Perform prediction using yolov4 pytorch implementation
         # Creating the file to save output
         if(output_file):
@@ -134,6 +134,8 @@ class Detector:
                             x2=original_width
                         if(y2>original_height):
                             y2=original_height
+                        print(box[4])
+                        print(box[5])
                         obj_class = box[6] #0 means person
                         # Insert prediction
                         if(output_file):
@@ -182,24 +184,25 @@ class Detector:
 
 if __name__ == '__main__':
     # Parsing ground truth
-    ground_truth_dict = parse_gtruth(r'datasets\visdrone\test\_annotations.txt')
+    ground_truth_dict = parse_gtruth(r'datasets\sard\test\_annotations.txt')
 
     # PYTORCH
     # Creating the model
-    model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
-    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\prova.pth')
-    model.activate_gpu()
+    # model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
+    # model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\prova.pth')
+    # model.activate_gpu()
 
-    # Creating the detector
-    yolov4_detector = Detector(model,True,608,608,r'datasets\visdrone\test')
-    pred = yolov4_detector.detect_in_images(0.4)
-    yolov4_detector.visualize_predictions(pred)
+    # # Creating the detector
+    # yolov4_detector = Detector(model,True,608,608,r'datasets\visdrone\test')
+    # pred = yolov4_detector.detect_in_images(0.4)
+    # yolov4_detector.visualize_predictions(pred)
 
-    # Creating metrics object 
-    # with open(r'C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone\trained_weights\predictions_1088.pkl',"rb") as f:
-    #     pred = pickle.load(f)
+    #Creating metrics object 
+    with open(r'C:\Users\Riccardo\Desktop\TESI MAGISTRALE\Code\master_degree\tests\predictions_800.pkl',"rb") as f:
+        pred = pickle.load(f)
     
-    meter = Metric(r'datasets\visdrone\test\_annotations.txt',ground_truth_dict)
+    print(pred)
+    meter = Metric(r'datasets\sard\test\_annotations.txt',ground_truth_dict)
     metriche = meter.precision_recall(pred,0.5)
     #small, medium, large = meter.precision_recall_scales(pred,0.4,100,500)
     print('TOTAL')
@@ -207,11 +210,14 @@ if __name__ == '__main__':
     print('Recall: '+str(metriche[1]))
     print('F1: '+str(metriche[2]))
     print('\nSmall objects')
-    print('Predicted: '+str(metriche[3]))
+    print('Precision: '+str(metriche[3]))
     print('Recall: '+str(metriche[4]))
+    print('F1: '+str(metriche[5]))
     print('\nMedium objects')
-    print('Predicted: '+str(metriche[5]))
-    print('Recall: '+str(metriche[6]))
+    print('Precision: '+str(metriche[6]))
+    print('Recall: '+str(metriche[7]))
+    print('F1: '+str(metriche[8]))
     print('\nLarge objects')
-    print('Predicted: '+str(metriche[7]))
-    print('Recall: '+str(metriche[8]))
+    print('Precision: '+str(metriche[9]))
+    print('Recall: '+str(metriche[10]))
+    print('F1: '+str(metriche[11]))

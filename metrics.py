@@ -76,9 +76,6 @@ class Metric():
         medium_g_truth = 0 
         large_g_truth = 0 
         tot_pred = 0
-        small_pred = 0 
-        medium_pred = 0 
-        large_pred = 0 
         f1 = 0 
         f1_small = 0
         f1_medium = 0 
@@ -98,29 +95,21 @@ class Metric():
                 tot_g_truth += len(self.ground_truth[key])
 
         for key in predictions_dict.keys():
-            for box in predictions_dict[key]:
-                    area = (box[3]-box[1])*(box[2]-box[0])
-                    if(area<150):
-                        small_pred+=1
-                    elif(area>500):
-                        large_pred+=1
-                    else:
-                        medium_pred+=1
             tot_pred += len(predictions_dict[key])
 
 
         # Calculate total precision and recall
         if(tot_pred!=0):
             precision = true_positive/tot_pred
-            # DOES NOT HAVE MUCH SENSE
-            # small_precision = small_positive/tot_pred
-            # medium_precision = medium_positive/tot_pred
-            # large_precision = large_positive/tot_pred
+            # DOES IT HAVE SENSE??
+            small_precision = precision*(small_positive/tot_pred)
+            medium_precision = precision*(medium_positive/tot_pred)
+            large_precision = precision*(large_positive/tot_pred)
         else:
             precision = 0
-            # small_precision = 0
-            # medium_precision = 0 
-            # large_precision = 0
+            small_precision = 0
+            medium_precision = 0
+            large_precision = 0
         
         if(tot_g_truth!=0):
             recall = true_positive/tot_g_truth
@@ -136,62 +125,27 @@ class Metric():
         if(precision+recall!=0):
             f1 = (2*precision*recall)/(precision+recall)
         
-        # if(small_precision+small_recall!=0):
-        #     f1_small = (2*small_precision*small_recall)/(small_precision+small_recall)
-        # if(medium_precision+medium_recall!=0):
-        #     f1_medium = (2*medium_precision*medium_recall)/(medium_precision+medium_recall)
-        # if(large_precision+large_recall!=0):
-        #     f1_large = (2*large_precision*large_recall)/(large_precision+large_recall)
+        if(small_precision+small_recall!=0):
+            f1_small = (2*small_precision*small_recall)/(small_precision+small_recall)
+        if(medium_precision+medium_recall!=0):
+            f1_medium = (2*medium_precision*medium_recall)/(medium_precision+medium_recall)
+        if(large_precision+large_recall!=0):
+            f1_large = (2*large_precision*large_recall)/(large_precision+large_recall)
 
+        return [precision, recall, f1, small_precision, small_recall, f1_small, medium_precision, medium_recall, f1_medium, large_precision, large_recall, f1_large]
 
-        return [precision, recall, f1, small_pred, small_recall, medium_pred, medium_recall, large_pred, large_recall]
-
-    def precision_recall_scales(self,predictions_annotations,iou_threhsold, small_threshold, large_threshold):
-        # Function that separates the precision and recall between small, medium and large objects
-        # Small : area < 150 pixels
-        # Medium : 150 < area < 500 pixels
-        # Large: area > 500 pixels
-        small_dictionary = {}
-        medium_dictionary = {}
-        large_dictionary = {}
-        small_objs = 0
-        medium_objs = 0
-        large_objs = 0 
-        for key in self.ground_truth.keys():
-            small_dictionary[key] = []
-            medium_dictionary[key] = []
-            large_dictionary[key] = []
-            boxes = predictions_annotations[key]
-            for box in boxes:
-                width = box[3]-box[1]
-                height = box[2]-box[0]
-                if(width*height<=small_threshold):
-                    small_dictionary[key].append(box)
-                    small_objs+=1
-                elif(width*height>=large_threshold):
-                    large_dictionary[key].append(box)
-                    large_objs+=1
-                else:
-                    medium_dictionary[key].append(box)
-                    medium_objs+=1
-        print('# Small objects: '+str(small_objs))
-        print('# Medium objects: '+str(medium_objs))
-        print('# Large objects: '+str(large_objs))
-
-        small_values = self.precision_recall(small_dictionary,iou_threhsold)
-        medium_values = self.precision_recall(medium_dictionary,iou_threhsold)
-        large_values = self.precision_recall(large_dictionary,iou_threhsold)
-
-        return small_values, medium_values, large_values
-
-
-    def calculate_precision_recall_lists(self, predictions_list, iou_threshold):
+    def calculate_precision_recall_lists(self, predictions_dict, iou_threshold):
         # Function that plots precision recall values for different confidences to create a curve
         # INPUT
-        # predictions_list = a list of predictions, one at each threhsold
+        # predictions_list = a list of predictions for a set of images (at low confidence, for example 0.01)
         # iou_threhsold = the IOU threhsold used to quantify true positive
         precision_list = []
         recall_list = []
+        list_of_predictions = []
+        # Ordering the predictions by confidence in a list
+        for key, value in predictions_list.items():
+            for index in range(len(value)):
+                list_of_predictions.append((key,index,value[index][4])) 
         for prediction in predictions_list:
             values = self.precision_recall(prediction,iou_threshold)
             if(values[0]==0 and values[1]==0):
@@ -200,7 +154,6 @@ class Metric():
                 precision_list.append(values[0])
                 recall_list.append(values[1])
         return precision_list, recall_list
-
 
 
     def plot_precision_recall_curve(self, precision_list, recall_list, save_plot=False, save_path=None):
