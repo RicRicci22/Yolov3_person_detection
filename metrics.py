@@ -44,8 +44,8 @@ class Metric():
         for key in self.ground_truth.keys():
             if(key in predictions_dict.keys()):
                 # Creating matrix of ious
-                matrix = np.zeros((len(self.ground_truth[key]),len(predictions_dict)))
-                for i in  range(len(self.ground_truth[key])):
+                matrix = np.zeros((len(self.ground_truth[key]),len(predictions_dict[key])))
+                for i in range(len(self.ground_truth[key])):
                     for j in range(len(predictions_dict[key])):
                         matrix[i,j]=self.evaluate_IoU(self.ground_truth[key][i],predictions_dict[key][j])
                 # iterating on the max
@@ -57,9 +57,9 @@ class Metric():
                     box = self.ground_truth[key][max_indices[0][0]]
                     #print(bbox_truth)
                     area = (box[3]-box[1])*(box[2]-box[0])
-                    if(area<150):
+                    if(area<256):
                         small_positive+=1
-                    elif(area>500):
+                    elif(area>1200):
                         large_positive+=1
                     else:
                         medium_positive+=1
@@ -85,9 +85,9 @@ class Metric():
             if(key in predictions_dict.keys()):
                 for box in self.ground_truth[key]:
                     area = (box[3]-box[1])*(box[2]-box[0])
-                    if(area<150):
+                    if(area<256):
                         small_g_truth+=1
-                    elif(area>500):
+                    elif(area>1200):
                         large_g_truth+=1
                     else:
                         medium_g_truth+=1
@@ -100,12 +100,15 @@ class Metric():
         # Calculate total precision and recall
         if(tot_pred!=0):
             precision = true_positive/tot_pred
-            # DOES IT HAVE SENSE??
-            small_precision = precision*(small_positive/tot_pred)
-            medium_precision = precision*(medium_positive/tot_pred)
-            large_precision = precision*(large_positive/tot_pred)
         else:
             precision = 0
+        # DOES IT HAVE SENSE??
+        if(small_positive+medium_positive+large_positive!=0):
+            small_precision = precision*(small_positive/(small_positive+medium_positive+large_positive))
+            medium_precision = precision*(medium_positive/(small_positive+medium_positive+large_positive))
+            large_precision = precision*(large_positive/(small_positive+medium_positive+large_positive))
+            # For ground truth this results in the recall value!    
+        else:
             small_precision = 0
             medium_precision = 0
             large_precision = 0
@@ -142,13 +145,19 @@ class Metric():
 
         return [precision, recall, f1, small_precision, small_recall, f1_small, medium_precision, medium_recall, f1_medium, large_precision, large_recall, f1_large]
 
-    def calculate_precision_recall_lists(self, predictions_dict, iou_threshold):
+    def calculate_precision_recall_curve(self, predictions_dict, iou_threshold, plot_graph=True):
         # Function that plots precision recall values for different confidences to create a curve
         # INPUT
         # predictions_list = a list of predictions for a set of images (at low confidence, for example 0.01)
         # iou_threhsold = the IOU threhsold used to quantify true positive
         precision_list = []
         recall_list = []
+        prec_list_small = []
+        rec_list_small = []
+        prec_list_medium = []
+        rec_list_medium = []
+        prec_list_large = []
+        rec_list_large = []
         list_of_predictions = []
         # Ordering the predictions by confidence in a list
         for key, value in predictions_dict.items():
@@ -156,39 +165,115 @@ class Metric():
                 list_of_predictions.append((key,index,value[index][5])) 
         ordered_list_prediction = sorted(list_of_predictions, key=lambda x: x[2],reverse=True)
         # Creating new prediction dict, inserting one bbox at a time
-        new_pred_dict = {}
-        for bbox in ordered_list_prediction:
-            if(bbox[0] in new_pred_dict):
-                new_pred_dict[bbox[0]].append(predictions_dict[bbox[0]][bbox[1]])
-            else:
-                new_pred_dict[bbox[0]] = [predictions_dict[bbox[0]][bbox[1]]]
-            # Every time calculate precision recall etc
+        confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.20,0.15,0.10,0.05,0]
+        for confidence_step in confidence_steps:
+            new_pred_dict = {}
+            for bbox in ordered_list_prediction:
+                if(bbox[0] in new_pred_dict and bbox[2]>confidence_step):
+                    new_pred_dict[bbox[0]].append(predictions_dict[bbox[0]][bbox[1]])
+                elif(bbox[2]>confidence_step):
+                    new_pred_dict[bbox[0]] = [predictions_dict[bbox[0]][bbox[1]]]
+                # Every time calculate precision recall etc
             metr_values = self.precision_recall(new_pred_dict,iou_threshold)
-            precision_list.append(metr_values[0])
-            recall_list.append(metr_values[1])
+            if(metr_values[0]!=0 or metr_values[1]!=0):
+                precision_list.append(metr_values[0])
+                recall_list.append(metr_values[1])
+            if(metr_values[3]!=0 or metr_values[4]!=0):
+                prec_list_small.append(metr_values[3])
+                rec_list_small.append(metr_values[4])
+            if(metr_values[6]!=0 or metr_values[7]!=0):
+                prec_list_medium.append(metr_values[6])
+                rec_list_medium.append(metr_values[7])
+            if(metr_values[9]!=0 or metr_values[10]!=0):
+                prec_list_large.append(metr_values[9])
+                rec_list_large.append(metr_values[10])
         
-        plt.plot(precision_list,recall_list)
-        plt.title('Precision-Recall Curve')
-        plt.xlabel('Precision')
-        plt.ylabel('Recall')
-        plt.show()
-        return
+        if(plot_graph):
+            plt.figure()
+            plt.plot(recall_list,precision_list)
+            plt.title('Precision-Recall Curve')
+            plt.xlabel('Recall')
+            plt.ylabel('Precision')
+            # Small objects 
+            plt.figure()
+            plt.plot(rec_list_small,prec_list_small)
+            plt.title('Precision-Recall Curve --- Small objects')
+            plt.xlabel('Recall')
+            plt.ylabel('Precision')
+            # Medium objects 
+            plt.figure()
+            plt.plot(rec_list_medium,prec_list_medium)
+            plt.title('Precision-Recall Curve --- Medium objects')
+            plt.xlabel('Recall')
+            plt.ylabel('Precision')
+            # Large objects 
+            plt.figure()
+            plt.plot(rec_list_large,prec_list_large)
+            plt.title('Precision-Recall Curve --- Large objects')
+            plt.xlabel('Recall')
+            plt.ylabel('Precision')
+            
+            plt.show()
 
-    def calc_average_precision(self,precision_list, recall_list):
+        return precision_list, recall_list, prec_list_small, rec_list_small, prec_list_medium, rec_list_medium, prec_list_large, rec_list_large
+
+    def calc_AP_AR(self,precision_list, recall_list):
         # Function to calculate the average precision
         # INPUT
         # precision_list = a list of floating precision values
         # recall_list = a list of floating recall values
         # OUTPUT
         # average_precision = floating value
-        recall_list.append(0.0)
-        precision_list.append(1.0)
-        recall_list.reverse()
-        precision_list.reverse()
-        AP = 0
-        for index in range(len(recall_list)-1):
-            AP+=(recall_list[index+1]-recall_list[index])*precision_list[index]
+        average_prec = 0
+        average_rec = 0
+        recall_list.append(1)
+        for index in range(len(precision_list)):
+            average_prec+=(recall_list[index+1]-recall_list[index])*precision_list[index]
+        recall_list.pop()
+        precision_list.append(0)
+        for index in range(len(recall_list)):
+            average_rec+=(precision_list[index]-precision_list[index+1])*recall_list[index]
+        precision_list.pop()
 
-        return AP
+        return average_prec, average_rec
+    
+    def average_map_mar_iou_threshold(self, predictions):
+        map = 0
+        mar = 0 
+        map_small = 0 
+        mar_small = 0
+        map_medium = 0 
+        mar_medium = 0
+        map_large = 0 
+        mar_large = 0
+        list_iou = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.20,0.15,0.10,0.05]
+        for iou in list_iou:
+            lists = self.calculate_precision_recall_curve(predictions,iou,False)
+            values = self.calc_AP_AR(lists[0],lists[1])
+            map+=values[0]
+            mar+=values[1]
+            values = self.calc_AP_AR(lists[2],lists[3])
+            map_small+=values[0]
+            mar_small+=values[1]
+            values = self.calc_AP_AR(lists[4],lists[5])
+            map_medium+=values[0]
+            mar_medium+=values[1]
+            values = self.calc_AP_AR(lists[6],lists[7])
+            map_large+=values[0]
+            mar_large+=values[1]
+        
+        map/=len(list_iou)
+        mar/=len(list_iou)
+        map_small/=len(list_iou)
+        mar_small/=len(list_iou)
+        map_medium/=len(list_iou)
+        mar_medium/=len(list_iou)
+        map_large/=len(list_iou)
+        mar_large/=len(list_iou)
+
+        return map, mar, map_small, mar_small, map_medium, mar_medium, map_large, mar_large
+            
+
+
 
 

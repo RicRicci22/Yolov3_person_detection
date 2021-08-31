@@ -2,8 +2,8 @@
 
 from metrics import Metric
 from tool.utils import *
-#from tool.torch_utils import *
-#from models import Yolov4
+from tool.torch_utils import *
+from models import Yolov4
 import cv2
 import os
 import time
@@ -170,55 +170,68 @@ class Detector:
                 cv2.rectangle(image_cv,(left, top), (right, bottom), color, thick)
             cv2.imwrite('predictions/drawn_'+image, image_cv)
 
-    def calculate_predictions_list(self, conf_step):
-        # conf_step = the step to calculate the confidence levels
-        conf_values = [i/100 for i in range(1,100,int(conf_step*100))]
-        conf_values.append(0.99)
-        predictions = []
-        for conf in conf_values:
-            print('Detecting in images with confidence: '+str(conf))
-            predictions.append(self.detect_in_images(conf))
-
-        return predictions
-
 
 if __name__ == '__main__':
     # Parsing ground truth
-    ground_truth_dict = parse_gtruth(r'datasets\sard\test\_annotations.txt')
-
+    ground_truth_dict = parse_gtruth(r'datasets\visdrone\test\_annotations.txt')
     # PYTORCH
     # Creating the model
-    # model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
-    # model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\prova.pth')
-    # model.activate_gpu()
+    model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
+    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\prova.pth')
+    model.activate_gpu()
 
     # # Creating the detector
-    # yolov4_detector = Detector(model,True,608,608,r'datasets\visdrone\test')
-    # pred = yolov4_detector.detect_in_images(0.4)
-    # yolov4_detector.visualize_predictions(pred)
+    yolov4_detector = Detector(model,True,1088,1088,r'datasets\visdrone\test2')
+    pred = yolov4_detector.detect_in_images(0.01)
+    #yolov4_detector.visualize_predictions(pred)
 
-    #Creating metrics object 
-    with open(r'C:\Users\Riccardo\Desktop\TESI MAGISTRALE\Code\master_degree\tests\predictions_608.pkl',"rb") as f:
-        pred = pickle.load(f)
+    meter = Metric(r'datasets\visdrone\test\_annotations.txt',ground_truth_dict)
+    #metriche = meter.precision_recall(pred,0.5)
+    precision_list, recall_list, small_prec, small_rec, medium_prec, medium_rec, large_prec, large_rec = meter.calculate_precision_recall_curve(pred,0.5, plot_graph=True)
+    # print('TOTAL')
+    # print('Precision: '+str(metriche[0]))
+    # print('Recall: '+str(metriche[1]))
+    # print('F1: '+str(metriche[2]))
+    # print('\nSmall objects')
+    # print('Precision: '+str(metriche[3]))
+    # print('Recall: '+str(metriche[4]))
+    # print('F1: '+str(metriche[5]))
+    # print('\nMedium objects')
+    # print('Precision: '+str(metriche[6]))
+    # print('Recall: '+str(metriche[7]))
+    # print('F1: '+str(metriche[8]))
+    # print('\nLarge objects')
+    # print('Precision: '+str(metriche[9]))
+    # print('Recall: '+str(metriche[10]))
+    # print('F1: '+str(metriche[11]))
+    print(precision_list)
+    print(recall_list)
     
-    #print(pred)
+    ap, ar = meter.calc_AP_AR(precision_list,recall_list)
+    aps, ars = meter.calc_AP_AR(small_prec,small_rec)
+    apm, arm = meter.calc_AP_AR(medium_prec,medium_rec)
+    apl, arl = meter.calc_AP_AR(large_prec,large_rec)
+    
+    print('Total')
+    print(ap,ar)
+    print('Small objs.')
+    print(aps,ars)
+    print('Medium objs.')
+    print(apm,arm)
+    print('Large objs.')
+    print(apl,arl)
 
-    meter = Metric(r'datasets\sard\test\_annotations.txt',ground_truth_dict)
-    metriche = meter.precision_recall(pred,0.5)
-    meter.calculate_precision_recall_lists(pred,0.1)
-    print('TOTAL')
-    print('Precision: '+str(metriche[0]))
-    print('Recall: '+str(metriche[1]))
-    print('F1: '+str(metriche[2]))
-    print('\nSmall objects')
-    print('Precision: '+str(metriche[3]))
-    print('Recall: '+str(metriche[4]))
-    print('F1: '+str(metriche[5]))
-    print('\nMedium objects')
-    print('Precision: '+str(metriche[6]))
-    print('Recall: '+str(metriche[7]))
-    print('F1: '+str(metriche[8]))
-    print('\nLarge objects')
-    print('Precision: '+str(metriche[9]))
-    print('Recall: '+str(metriche[10]))
-    print('F1: '+str(metriche[11]))
+    print('Mean average precision over thresholds')
+    values = meter.average_map_mar_iou_threshold(pred)
+    print('Total')
+    print('Map: '+str(values[0]))
+    print('Mar: '+str(values[1]))
+    print('Small')
+    print('Map: '+str(values[2]))
+    print('Mar: '+str(values[3]))
+    print('Medium')
+    print('Map: '+str(values[4]))
+    print('Mar: '+str(values[5]))
+    print('Large')
+    print('Map: '+str(values[6]))
+    print('Mar: '+str(values[7]))

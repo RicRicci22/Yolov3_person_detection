@@ -250,7 +250,7 @@ def parse_gtruth(gt_path):
         ground_truth_dict[pieces[0]]=[]
         for bbox in pieces[1:]:
             coords = bbox.split(',')
-            ground_truth_dict[pieces[0]].append([int(coords[0]),int(coords[1]),int(coords[2]),int(coords[3]),int(coords[4])])
+            ground_truth_dict[pieces[0]].append([int(coords[0]),int(coords[1]),int(coords[2]),int(coords[3]),int(coords[4]),1])
 
     return ground_truth_dict
 
