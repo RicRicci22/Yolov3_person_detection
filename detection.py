@@ -172,8 +172,6 @@ class Detector:
 
 
 if __name__ == '__main__':
-    # Parsing ground truth
-    ground_truth_dict = parse_gtruth(r'datasets\visdrone\test\_annotations.txt')
     # PYTORCH
     # Creating the model
     model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
@@ -185,7 +183,7 @@ if __name__ == '__main__':
     pred = yolov4_detector.detect_in_images(0.01)
     #yolov4_detector.visualize_predictions(pred)
 
-    meter = Metric(r'datasets\visdrone\test\_annotations.txt',ground_truth_dict)
+    meter = Metric(r'datasets\visdrone\test\_annotations.txt')
     #metriche = meter.precision_recall(pred,0.5)
     precision_list, recall_list, small_prec, small_rec, medium_prec, medium_rec, large_prec, large_rec = meter.calculate_precision_recall_curve(pred,0.5, plot_graph=True)
     # print('TOTAL')

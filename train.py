@@ -14,7 +14,8 @@ import time
 import logging
 import os
 from collections import deque
-
+from detection import Detector
+from metrics import Metric
 
 import cv2
 from tqdm import tqdm
@@ -103,8 +104,6 @@ class Yolo_loss(nn.Module):
             all_anchors_grid = [(w / self.strides[i], h / self.strides[i]) for w, h in self.anchors]
             #print(all_anchors_grid)
             masked_anchors = np.array([all_anchors_grid[j] for j in self.anch_masks[i]], dtype=np.float32) # shape 
-            print(masked_anchors.shape)
-            print(masked_anchors)
             #print(masked_anchors)
             ref_anchors = np.zeros((len(all_anchors_grid), 4), dtype=np.float32)
             ref_anchors[:, 2:] = np.array(all_anchors_grid, dtype=np.float32)
@@ -293,16 +292,15 @@ def collate(batch):
 
 def train(model, device, config, epochs=5, save_cp=True, log_step=20):
     train_dataset = Yolo_dataset(config.train_label, config, train=True)
-    #val_dataset = Yolo_dataset(config.val_label, config, train=False)
+    val_dataset = Yolo_dataset(config.val_label, config, train=False)
 
     n_train = len(train_dataset)
-    #n_val = len(val_dataset)
 
     train_loader = DataLoader(train_dataset, batch_size=config.batch // config.subdivisions, shuffle=True,
                               num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate)
 
-    #val_loader = DataLoader(val_dataset, batch_size=config.batch // config.subdivisions, shuffle=True, num_workers=8,
-    #                        pin_memory=True, drop_last=True, collate_fn=val_collate)
+    val_loader = DataLoader(val_dataset, batch_size=config.batch // config.subdivisions, shuffle=True, num_workers=8,
+                            pin_memory=True, drop_last=True, collate_fn=val_collate)
 
     global_step = 0
     
@@ -343,24 +341,11 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=20):
     saved_models = deque()
     model.train()
     for epoch in range(epochs):
-        epoch_step = 0
-
         with tqdm(total=n_train, desc=f'Epoch {epoch + 1}/{epochs}', unit='img', ncols=50) as pbar:
             for i, batch in enumerate(train_loader):
                 global_step += 1
-                epoch_step += 1
                 images = batch[0] # shape [batch_size, n_ch, width, height]
                 bboxes = batch[1] # shape [batch_size, n_boxes, box_coord+n_classes]
-                
-                """  immagine = np.array(np.transpose(images[0]*255,(1,2,0)))
-                #print(bboxes[0])
-                for b in bboxes[0]:
-                    img = cv2.rectangle(immagine, (int(b[0]), int(b[1])), (int(b[2]), int(b[3])), (0, 255, 0), 2)
-                plt.imshow(img.astype(np.int32))
-                plt.show()
-                #print(bboxes)
-                #print(images) """
-                
 
                 images = images.to(device=device, dtype=torch.float32)
                 bboxes = bboxes.to(device=device)
@@ -376,26 +361,23 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=20):
                     scheduler.step()
                     model.zero_grad()
 
-                if global_step % (log_step * config.subdivisions) == 0:
-                    print('\n',loss.item(),'\n',scheduler.get_last_lr())
-                    print('\n',loss_xy.item(),'\n',loss_wh.item(),'\n',loss_obj.item(),'\n',loss_cls.item())
+                if global_step % (log_step * config.subdivisions) == 0: # After tot images, print info 
+                    print('Total loss: ',loss.item(),'\nLast learning rate: ',scheduler.get_last_lr())
+                    print('\nLoss center bboxes: ',loss_xy.item(),'\nLoss bboxes dimension: ',loss_wh.item(),'\nLoss objectness: ',loss_obj.item(),'\nLoss class: ',loss_cls.item())
+                    # Implementing validation during training! 
+                    # Create the evaluation model 
+                    eval_model = Yolov4(yolov4conv137weight=None, n_classes=cfg.classes, inference=True)
+                    eval_model.load_state_dict(model.state_dict()) 
+                    # Send the model to the gpu 
+                    eval_model.to(device) 
+                    # Create the detector 
+                    detector = Detector(eval_model,True,Cfg.width,Cfg.height,Cfg.val_label)
+                    # Create the metric object
+                    meter = Metric()
 
                 pbar.update(images.shape[0]) 
 
             pbar.close()
-
-            # Must implement validation during training! 
-
-            """ eval_model = Yolov4(cfg.pretrained, n_classes=cfg.classes, inference=True)
-            if torch.cuda.device_count() > 1:
-                eval_model.load_state_dict(model.module.state_dict())
-            else:
-                eval_model.load_state_dict(model.state_dict())
-            eval_model.to(device)
-            evaluator = evaluate(eval_model, val_loader, config, device)
-            del eval_model """
-
-            #stats = evaluator.coco_eval['bbox'].stats
 
             if save_cp:
                 try:
@@ -413,71 +395,6 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=20):
                         os.remove(model_to_remove)
                     except:
                         logging.info(f'failed to remove {model_to_remove}')
-
-
-
-@torch.no_grad()
-def evaluate(model, data_loader, cfg, device, logger=None, **kwargs):
-    """ finished, tested
-    """
-    model.eval()
-    # header = 'Test:'
-
-    coco = convert_to_coco_api(data_loader.dataset, bbox_fmt='coco')
-    coco_evaluator = CocoEvaluator(coco, iou_types = ["bbox"], bbox_fmt='coco')
-
-    for images, targets in data_loader:
-        model_input = [[cv2.resize(img, (cfg.w, cfg.h))] for img in images]
-        model_input = np.concatenate(model_input, axis=0)
-        model_input = model_input.transpose(0, 3, 1, 2)
-        model_input = torch.from_numpy(model_input).div(255.0)
-        model_input = model_input.to(device)
-        targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
-        model_time = time.time()
-        outputs = model(model_input)
-
-        # outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
-        model_time = time.time() - model_time
-
-        # outputs = outputs.cpu().detach().numpy()
-        res = {}
-        # for img, target, output in zip(images, targets, outputs):
-        for img, target, boxes, confs in zip(images, targets, outputs[0], outputs[1]):
-            img_height, img_width = img.shape[:2]
-            # boxes = output[...,:4].copy()  # output boxes in yolo format
-            boxes = boxes.squeeze(2).cpu().detach().numpy()
-            boxes[...,2:] = boxes[...,2:] - boxes[...,:2] # Transform [x1, y1, x2, y2] to [x1, y1, w, h]
-            boxes[...,0] = boxes[...,0]*img_width
-            boxes[...,1] = boxes[...,1]*img_height
-            boxes[...,2] = boxes[...,2]*img_width
-            boxes[...,3] = boxes[...,3]*img_height
-            boxes = torch.as_tensor(boxes, dtype=torch.float32)
-            # confs = output[...,4:].copy()
-            confs = confs.cpu().detach().numpy()
-            labels = np.argmax(confs, axis=1).flatten()
-            labels = torch.as_tensor(labels, dtype=torch.int64)
-            scores = np.max(confs, axis=1).flatten()
-            scores = torch.as_tensor(scores, dtype=torch.float32)
-            res[target["image_id"].item()] = {
-                "boxes": boxes,
-                "scores": scores,
-                "labels": labels,
-            }
-        evaluator_time = time.time()
-        coco_evaluator.update(res)
-        evaluator_time = time.time() - evaluator_time
-
-    # gather the stats from all processes
-    coco_evaluator.synchronize_between_processes()
-
-    # accumulate predictions from all images
-    coco_evaluator.accumulate()
-    coco_evaluator.summarize()
-
-    return coco_evaluator
 
 
 def get_args(**kwargs):

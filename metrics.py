@@ -6,9 +6,18 @@ import matplotlib.pyplot as plt
 # The idea is that this to be a class, and each object will be created passing a dataset, so that the object will perform metrics on a specific dataset
 # Every metric object is bound to a ground truth
 class Metric():
-    def __init__(self,ground_truth_path,ground_truth_dictionary):
+    def __init__(self,ground_truth_path):
         self.ground_truth_path = ground_truth_path
-        self.ground_truth = ground_truth_dictionary
+        # Parsing ground truth 
+        ground_truth_dict = {}
+        file = open(ground_truth_path,'r')
+        for row in file.readlines():
+            pieces = row.split(' ')
+            ground_truth_dict[pieces[0]]=[]
+            for bbox in pieces[1:]:
+                coords = bbox.split(',')
+                ground_truth_dict[pieces[0]].append([int(coords[0]),int(coords[1]),int(coords[2]),int(coords[3]),int(coords[4]),1])
+        self.ground_truth = ground_truth_dict
 
     def __str__(self):
         print('Metric object')
