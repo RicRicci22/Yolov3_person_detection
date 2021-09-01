@@ -5,8 +5,9 @@ Next steps:
 - [X] correct precision recall calculation 
 - [X] small medium large objects precision recall calculation 
 - [X] insert calculation for AP and AR
-- [ ] insert calculation for AP small medium large and the same for AR 
-- [ ] insert validation using training
+- [X] insert calculation for AP small medium large and the same for AR (even tough it does not have much sense maybe..)
+- [X] insert validation using training
+- [ ] implementing loss validation during training 
 
 Tests:
 - [ ] customizing anchor boxes 
