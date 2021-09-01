@@ -10,14 +10,12 @@
     @Detail    :
 
 '''
-import time
 import logging
 import os
 from collections import deque
 from detection import Detector
 from metrics import Metric
 
-import cv2
 from tqdm import tqdm
 import numpy as np
 import torch
@@ -33,8 +31,8 @@ from cfg import Cfg
 from models import Yolov4
 
 from tool.tv_reference.utils import collate_fn as val_collate
-from tool.tv_reference.coco_utils import convert_to_coco_api
-from tool.tv_reference.coco_eval import CocoEvaluator
+import matplotlib.animation as animation
+import matplotlib.pyplot as plt
 
 #from tool.utils_iou import bboxes_iou
 
@@ -289,7 +287,6 @@ def collate(batch):
     bboxes = torch.from_numpy(bboxes)
     return images, bboxes
 
-
 def train(model, device, config, epochs=5, save_cp=True, log_step=20):
     train_dataset = Yolo_dataset(config.train_label, config, train=True)
     val_dataset = Yolo_dataset(config.val_label, config, train=False)
@@ -340,12 +337,45 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=20):
     save_prefix = 'Yolov4_epoch'
     saved_models = deque()
     model.train()
+    # To evaluate model
+    step_list = []
+    loss_list = []
+    loss_xy_list = []
+    loss_wh_list = []
+    loss_obj_list = []
+    loss_class_list = []
+    val_loss_list = []
+
+    # Setting up interactive mode
+    plt.ion()
+
+    # Creating figure for total loss 
+    fig = plt.figure()
+    ax1 = fig.add_subplot(111)
+    line1, = ax1.plot([], [], 'r-')
+
+    # Creating figure for other losses
+    fig2 = plt.figure()
+    ax2 = fig2.add_subplot(221)
+    ax3 = fig2.add_subplot(222)
+    ax4 = fig2.add_subplot(223)
+    ax5 = fig2.add_subplot(224)
+    line2, = ax2.plot([], [], 'b-')
+    line3, = ax3.plot([], [], 'b-')
+    line4, = ax4.plot([], [], 'b-')
+    line5, = ax5.plot([], [], 'b-')
+
+    # Creating figure for validation total losses
+    fig3 = plt.figure()
+    ax6 = fig3.add_subplot(111)
+    line6, = ax6.plot([], [], 'g-')
+
     for epoch in range(epochs):
         with tqdm(total=n_train, desc=f'Epoch {epoch + 1}/{epochs}', unit='img', ncols=50) as pbar:
             for i, batch in enumerate(train_loader):
-                global_step += 1
                 images = batch[0] # shape [batch_size, n_ch, width, height]
                 bboxes = batch[1] # shape [batch_size, n_boxes, box_coord+n_classes]
+                #print(bboxes)
 
                 images = images.to(device=device, dtype=torch.float32)
                 bboxes = bboxes.to(device=device)
@@ -362,20 +392,73 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=20):
                     model.zero_grad()
 
                 if global_step % (log_step * config.subdivisions) == 0: # After tot images, print info 
-                    print('Total loss: ',loss.item(),'\nLast learning rate: ',scheduler.get_last_lr())
+                    print('\nTotal loss: ',loss.item(),'\nLast learning rate: ',scheduler.get_last_lr())
                     print('\nLoss center bboxes: ',loss_xy.item(),'\nLoss bboxes dimension: ',loss_wh.item(),'\nLoss objectness: ',loss_obj.item(),'\nLoss class: ',loss_cls.item())
-                    # Implementing validation during training! 
-                    # Create the evaluation model 
-                    eval_model = Yolov4(yolov4conv137weight=None, n_classes=cfg.classes, inference=True)
-                    eval_model.load_state_dict(model.state_dict()) 
-                    # Send the model to the gpu 
-                    eval_model.to(device) 
-                    # Create the detector 
-                    detector = Detector(eval_model,True,Cfg.width,Cfg.height,Cfg.val_label)
-                    # Create the metric object
-                    meter = Metric()
+                    # # Calculating validation loss 
+                    # print('Calculating validation loss')
+                    # valid_loss = 0.0
+                    # model.eval()     # Optional when not using Model Specific layer
+                    # for i_val, batch_val in enumerate(val_loader):
+                    #     images = batch_val[0] # shape [batch_size, n_ch, width, height]
+                    #     bboxes = batch_val[1] # shape [batch_size, n_boxes, box_coord+n_classes]
+                    #     print(type(images))
+                    #     print(type(bboxes))
+
+                    #     # images = images.to(device=device, dtype=torch.float32)
+                    #     # bboxes = bboxes.to(device=device)
+
+                    #     # bboxes_pred_val = model(images) # shape [num_resolutions, batch_size, (5+n_ch)*num_boxes, grid, grid]
+
+                    #     # losses = criterion(bboxes_pred_val, bboxes)
+                    #     # valid_loss+=losses[0]
+                    # valid_loss/=i_val
+                    # Update lists 
+                    loss_list.append(loss.item())
+                    step_list.append(global_step)
+                    loss_xy_list.append(loss_xy.item())
+                    loss_wh_list.append(loss_wh.item())
+                    loss_obj_list.append(loss_obj.item())
+                    loss_class_list.append(loss_cls.item())
+                    #val_loss_list.append(valid_loss)
+
+                    # Manipulating figure for total loss
+                    ax1.set_ylim([0,max(loss_list)+0.1*max(loss_list)])
+                    ax1.set_xlim([0,global_step+2])
+                    line1.set_xdata(step_list)
+                    line1.set_ydata(loss_list)
+                    # Manipulating figure for specific losses
+                    ax2.set_ylim([0.0,max(loss_xy_list)+0.1*max(loss_xy_list)])
+                    ax2.set_xlim([0,global_step+2])
+                    ax3.set_ylim([0.0,max(loss_wh_list)+0.1*max(loss_wh_list)])
+                    ax3.set_xlim([0,global_step+2])
+                    ax4.set_ylim([0.0,max(loss_obj_list)+0.1*max(loss_obj_list)])
+                    ax4.set_xlim([0,global_step+2])
+                    ax5.set_ylim([0.0,max(loss_class_list)+0.1*max(loss_class_list)])
+                    ax5.set_xlim([0,global_step+2])
+                    line2.set_xdata(step_list)
+                    line2.set_ydata(loss_xy_list)
+                    line3.set_xdata(step_list)
+                    line3.set_ydata(loss_wh_list)
+                    line4.set_xdata(step_list)
+                    line4.set_ydata(loss_obj_list)
+                    line5.set_xdata(step_list)
+                    line5.set_ydata(loss_class_list)
+                    # Manipulating figure for validation loss
+                    # ax6.set_ylim([0.0,max(val_loss_list)+0.1*max(val_loss_list)])
+                    # ax6.set_xlim([0,global_step+2])
+                    # line6.set_xdata(step_list)
+                    # line6.set_ydata(val_loss_list)
+
+                    fig.canvas.draw()
+                    fig.canvas.flush_events()
+                    fig2.canvas.draw()
+                    fig2.canvas.flush_events()
+                    fig3.canvas.draw()
+                    fig3.canvas.flush_events()
+                                    
 
                 pbar.update(images.shape[0]) 
+                global_step += 1
 
             pbar.close()
 

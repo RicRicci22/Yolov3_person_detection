@@ -290,7 +290,8 @@ class Yolo_dataset(Dataset):
             return self._get_val_item(index)
         img_path = self.imgs[index]
         bboxes = np.array(self.truth.get(img_path), dtype=np.float)
-        img_path = os.path.join(self.cfg.dataset_dir, img_path)
+        print(bboxes)
+        img_path = os.path.join(self.cfg.train_dataset_dir, img_path)
         use_mixup = self.cfg.mixup
         if random.randint(0, 1):
             use_mixup = 0
@@ -392,18 +393,21 @@ class Yolo_dataset(Dataset):
         return out_img, out_bboxes1
 
     def _get_val_item(self, index):
-        # GET VALIDATION ITEM
+        # GET VALIDATION ITEM, to check!!!
         img_path = self.imgs[index]
         bboxes_with_cls_id = np.array(self.truth.get(img_path), dtype=np.float)
-        img = cv2.imread(os.path.join(self.cfg.dataset_dir, img_path))
-        # img_height, img_width = img.shape[:2]
+        img = cv2.imread(os.path.join(self.cfg.val_dataset_dir, img_path))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         # img = cv2.resize(img, (self.cfg.w, self.cfg.h))
         # img = torch.from_numpy(img.transpose(2, 0, 1)).float().div(255.0).unsqueeze(0)
         target = {}
-        # boxes to coco format
+        # boxes to right format
         boxes = bboxes_with_cls_id[...,:4]
+        #print(boxes)
+        boxes[..., :2] = (boxes[..., :2] + boxes[..., 2:])/2
         boxes[..., 2:] = boxes[..., 2:] - boxes[..., :2]  # box width, box height
+        #print(boxes)
+        #print('lol')
         target['boxes'] = torch.as_tensor(boxes, dtype=torch.float32)
         target['labels'] = torch.as_tensor(bboxes_with_cls_id[...,-1].flatten(), dtype=torch.int64)
         return img, target

@@ -59,7 +59,9 @@ Cfg.boxes = 60  # box num
 Cfg.TRAIN_EPOCHS = 10
 Cfg.train_label = os.path.join(_BASE_DIR, 'datasets','visdrone','train','_annotations.txt')
 Cfg.val_label = os.path.join(_BASE_DIR, 'datasets','visdrone','val','_annotations.txt')
-Cfg.dataset_dir = os.path.join(_BASE_DIR, 'datasets','visdrone','train')
+
+Cfg.train_dataset_dir = os.path.join(_BASE_DIR, 'datasets','visdrone','train')
+Cfg.val_dataset_dir = os.path.join(_BASE_DIR, 'datasets','visdrone','val')
 Cfg.TRAIN_OPTIMIZER = 'adam'
 
 if Cfg.mosaic and Cfg.cutmix:

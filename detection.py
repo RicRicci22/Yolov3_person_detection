@@ -97,7 +97,7 @@ class Detector:
         # Starting the loop
         i=0
         t0 = time.time()
-        print('Detecting in images..')
+        #print('Detecting in images..')
         for filename in os.listdir(self.testset):
             f = os.path.join(self.testset, filename)
             if(os.path.isfile(f)):
@@ -202,8 +202,6 @@ if __name__ == '__main__':
     # print('Precision: '+str(metriche[9]))
     # print('Recall: '+str(metriche[10]))
     # print('F1: '+str(metriche[11]))
-    print(precision_list)
-    print(recall_list)
     
     ap, ar = meter.calc_AP_AR(precision_list,recall_list)
     aps, ars = meter.calc_AP_AR(small_prec,small_rec)
