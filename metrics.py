@@ -10,7 +10,7 @@ class Metric():
         self.ground_truth_path = ground_truth_path
         # Parsing ground truth 
         ground_truth_dict = {}
-        file = open(ground_truth_path,'r')
+        file = open(self.ground_truth_path,'r')
         for row in file.readlines():
             pieces = row.split(' ')
             ground_truth_dict[pieces[0]]=[]
@@ -54,6 +54,8 @@ class Metric():
             if(key in predictions_dict.keys()):
                 # Creating matrix of ious
                 matrix = np.zeros((len(self.ground_truth[key]),len(predictions_dict[key])))
+                if(matrix.shape[0]==0 or matrix.shape[1]==0):
+                        continue
                 for i in range(len(self.ground_truth[key])):
                     for j in range(len(predictions_dict[key])):
                         matrix[i,j]=self.evaluate_IoU(self.ground_truth[key][i],predictions_dict[key][j])
