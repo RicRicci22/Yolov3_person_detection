@@ -232,10 +232,6 @@ class MetricLogger(object):
             header, total_time_str, total_time / len(iterable)))
 
 
-def collate_fn(batch):
-    return tuple(zip(*batch))
-
-
 def warmup_lr_scheduler(optimizer, warmup_iters, warmup_factor):
 
     def f(x):

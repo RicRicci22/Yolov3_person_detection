@@ -30,7 +30,6 @@ from dataset import Yolo_dataset
 from cfg import Cfg
 from models import Yolov4
 
-from tool.tv_reference.utils import collate_fn as val_collate
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 
@@ -297,7 +296,7 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=20):
                               num_workers=8, pin_memory=True, drop_last=True, collate_fn=collate)
 
     val_loader = DataLoader(val_dataset, batch_size=config.batch // config.subdivisions, shuffle=True, num_workers=8,
-                            pin_memory=True, drop_last=True, collate_fn=val_collate)
+                            pin_memory=True, drop_last=True, collate_fn=collate)
 
     global_step = 0
     
@@ -375,7 +374,6 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=20):
             for i, batch in enumerate(train_loader):
                 images = batch[0] # shape [batch_size, n_ch, width, height]
                 bboxes = batch[1] # shape [batch_size, n_boxes, box_coord+n_classes]
-                #print(bboxes)
 
                 images = images.to(device=device, dtype=torch.float32)
                 bboxes = bboxes.to(device=device)
@@ -394,24 +392,25 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=20):
                 if global_step % (log_step * config.subdivisions) == 0: # After tot images, print info 
                     print('\nTotal loss: ',loss.item(),'\nLast learning rate: ',scheduler.get_last_lr())
                     print('\nLoss center bboxes: ',loss_xy.item(),'\nLoss bboxes dimension: ',loss_wh.item(),'\nLoss objectness: ',loss_obj.item(),'\nLoss class: ',loss_cls.item())
-                    # # Calculating validation loss 
-                    # print('Calculating validation loss')
-                    # valid_loss = 0.0
-                    # model.eval()     # Optional when not using Model Specific layer
-                    # for i_val, batch_val in enumerate(val_loader):
-                    #     images = batch_val[0] # shape [batch_size, n_ch, width, height]
-                    #     bboxes = batch_val[1] # shape [batch_size, n_boxes, box_coord+n_classes]
-                    #     print(type(images))
-                    #     print(type(bboxes))
+                    # Calculating validation loss 
+                    print('Calculating validation loss')
+                    valid_loss = 0.0
+                    with torch.no_grad():
+                        model.eval()     # Optional when not using Model Specific layer
+                        for i_val, batch_val in enumerate(val_loader):
+                            images_val = batch_val[0] # shape [batch_size, n_ch, width, height]
+                            bboxes_val = batch_val[1] # shape [batch_size, n_boxes, box_coord+n_classes]
 
-                    #     # images = images.to(device=device, dtype=torch.float32)
-                    #     # bboxes = bboxes.to(device=device)
+                            images_val = images.to(device=device, dtype=torch.float32)
+                            bboxes_val = bboxes.to(device=device)
 
-                    #     # bboxes_pred_val = model(images) # shape [num_resolutions, batch_size, (5+n_ch)*num_boxes, grid, grid]
+                            bboxes_pred_val = model(images_val) # shape [num_resolutions, batch_size, (5+n_ch)*num_boxes, grid, grid]
 
-                    #     # losses = criterion(bboxes_pred_val, bboxes)
-                    #     # valid_loss+=losses[0]
-                    # valid_loss/=i_val
+                            losses = criterion(bboxes_pred_val, bboxes_val)
+                            valid_loss+=losses[0].cpu().detach().numpy()
+                        valid_loss/=i_val
+                        #valid_loss.cpu().detach().numpy() 
+                    model.train()
                     # Update lists 
                     loss_list.append(loss.item())
                     step_list.append(global_step)
@@ -419,7 +418,7 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=20):
                     loss_wh_list.append(loss_wh.item())
                     loss_obj_list.append(loss_obj.item())
                     loss_class_list.append(loss_cls.item())
-                    #val_loss_list.append(valid_loss)
+                    val_loss_list.append(valid_loss)
 
                     # Manipulating figure for total loss
                     ax1.set_ylim([0,max(loss_list)+0.1*max(loss_list)])
@@ -444,10 +443,10 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=20):
                     line5.set_xdata(step_list)
                     line5.set_ydata(loss_class_list)
                     # Manipulating figure for validation loss
-                    # ax6.set_ylim([0.0,max(val_loss_list)+0.1*max(val_loss_list)])
-                    # ax6.set_xlim([0,global_step+2])
-                    # line6.set_xdata(step_list)
-                    # line6.set_ydata(val_loss_list)
+                    ax6.set_ylim([0.0,max(val_loss_list)+0.1*max(val_loss_list)])
+                    ax6.set_xlim([0,global_step+2])
+                    line6.set_xdata(step_list)
+                    line6.set_ydata(val_loss_list)
 
                     fig.canvas.draw()
                     fig.canvas.flush_events()

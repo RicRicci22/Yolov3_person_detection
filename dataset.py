@@ -78,7 +78,7 @@ def fill_truth_detection(bboxes, num_boxes, classes, flip, dx, dy, sx, sy, net_w
         bboxes = bboxes[:num_boxes]
 
     min_w_h = np.array([bboxes[:, 2] - bboxes[:, 0], bboxes[:, 3] - bboxes[:, 1]]).min()
-
+    #print(type(bboxes))
     bboxes[:, 0] *= (net_w / sx)
     bboxes[:, 2] *= (net_w / sx)
     bboxes[:, 1] *= (net_h / sy)
@@ -290,7 +290,6 @@ class Yolo_dataset(Dataset):
             return self._get_val_item(index)
         img_path = self.imgs[index]
         bboxes = np.array(self.truth.get(img_path), dtype=np.float)
-        print(bboxes)
         img_path = os.path.join(self.cfg.train_dataset_dir, img_path)
         use_mixup = self.cfg.mixup
         if random.randint(0, 1):
@@ -393,24 +392,32 @@ class Yolo_dataset(Dataset):
         return out_img, out_bboxes1
 
     def _get_val_item(self, index):
-        # GET VALIDATION ITEM, to check!!!
+        # Get validation item
         img_path = self.imgs[index]
-        bboxes_with_cls_id = np.array(self.truth.get(img_path), dtype=np.float)
+        boxes = np.zeros((self.cfg.boxes,5))
+        boxes_to_insert = np.array(self.truth.get(img_path), dtype=np.float)
         img = cv2.imread(os.path.join(self.cfg.val_dataset_dir, img_path))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        # img = cv2.resize(img, (self.cfg.w, self.cfg.h))
-        # img = torch.from_numpy(img.transpose(2, 0, 1)).float().div(255.0).unsqueeze(0)
-        target = {}
-        # boxes to right format
-        boxes = bboxes_with_cls_id[...,:4]
-        #print(boxes)
-        boxes[..., :2] = (boxes[..., :2] + boxes[..., 2:])/2
-        boxes[..., 2:] = boxes[..., 2:] - boxes[..., :2]  # box width, box height
-        #print(boxes)
-        #print('lol')
-        target['boxes'] = torch.as_tensor(boxes, dtype=torch.float32)
-        target['labels'] = torch.as_tensor(bboxes_with_cls_id[...,-1].flatten(), dtype=torch.int64)
-        return img, target
+        original_height, original_width, _ = img.shape
+        
+        # Resizing
+        img = cv2.resize(img, (self.cfg.width, self.cfg.height), cv2.INTER_LINEAR) 
+
+        # # Remove unnecessary informations
+        # boxes = bboxes_with_cls_id[...,:4]
+        # Resize bbox to new width height
+        boxes_to_insert[:, 0] *= (self.cfg.width / original_width)
+        boxes_to_insert[:, 2] *= (self.cfg.width / original_width)
+        boxes_to_insert[:, 1] *= (self.cfg.height / original_height)
+        boxes_to_insert[:, 3] *= (self.cfg.height / original_height)
+
+
+        if(boxes_to_insert.shape[0]>self.cfg.boxes):
+            boxes = boxes_to_insert[:self.cfg.boxes,:]
+        else:
+            boxes[:boxes_to_insert.shape[0]] = boxes_to_insert
+
+        return img, boxes
 
 
 if __name__ == "__main__":
@@ -419,8 +426,7 @@ if __name__ == "__main__":
 
     random.seed(2020)
     np.random.seed(2020)
-    Cfg.dataset_dir = r'C:\Users\Melgani\Desktop\master_degree\datasets\visdrone\train'
-    dataset = Yolo_dataset(Cfg.train_label, Cfg)
+    dataset = Yolo_dataset(Cfg.val_label, Cfg, train=False)
     for i in range(100):
         out_img, out_bboxes = dataset.__getitem__(i)
         a = draw_box(out_img.copy(), out_bboxes.astype(np.int32))
