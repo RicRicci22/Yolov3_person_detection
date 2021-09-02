@@ -11,7 +11,7 @@ import time
 import pickle
 
 class Detector:
-    def __init__(self,model,use_cuda,input_width,input_height,testset):
+    def __init__(self,model,use_cuda,input_width,input_height,testset,keep_aspect_ratio):
         self.model = model
         self.use_cuda = use_cuda
         self.testset = testset # Path to the folder containing the testset over which to perform detections
@@ -20,9 +20,9 @@ class Detector:
         # cfgfile can be None cause it's used only when using Darknet configuration file!
         # Find namesfile
         self.namesfile = 'data/custom_names.names'
-
+        self.keep_aspect_ratio = keep_aspect_ratio
+    
     def __str__(self):
-        print('Detector object')
         print('Num. classes: 1')
         print('Testset path: ',self.testset)
         print('Model: ',self.model)
@@ -80,14 +80,13 @@ class Detector:
     #             n_frame=n_frame+1
     #         finish = time.time()
     #         # Printing average FPS in a txt file inside the folder
-    #         # TODO
     #         f = open(video_folder+"/average_FPS.txt", "a")
     #         f.write(video+'-->'+str(round(frame_count/(finish-start),1))+'FPS\n')
     #         f.close
     #         cap.release()
     #         writer.release()
 
-    def detect_in_images(self, confidence, keep_aspect_ratio=False, output_file=False):
+    def detect_in_images(self, confidence, output_file=False, visualize_predictions=False):
         # Perform prediction using yolov4 pytorch implementation
         # Creating the file to save output
         if(output_file):
@@ -107,7 +106,7 @@ class Detector:
                     i +=1
                     img = cv2.imread(os.path.join(self.testset,filename))
                     original_height, original_width, _ = img.shape
-                    if(keep_aspect_ratio):
+                    if(self.keep_aspect_ratio):
                         sized = keep_ratio(img,self.input_height)
                         sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
                     else:
@@ -145,30 +144,31 @@ class Detector:
                         detections.write('\n')
         t1 = time.time()
         print('FPS = ' + str(i/(t1-t0)))
+
+        # Visualizing predictions 
+        if(visualize_predictions):
+            print('Visualizing predictions..')
+            if(not os.path.isdir('predictions')):
+                os.mkdir('predictions')
+            for image in os.listdir(self.testset):
+                if(image.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif'))):
+                    image_cv = cv2.imread(os.path.join(self.testset,image))
+                else:
+                    continue
+                color = (0,255,0)
+                imgHeight, imgWidth, _ = image_cv.shape
+                thick = int((imgHeight + imgWidth) // 900)
+
+                boxes_predicted = predictions_dict[image]
+                for box in boxes_predicted:
+                    left = box[0]
+                    top = box[1]
+                    right = box[2]
+                    bottom = box[3]
+                    cv2.rectangle(image_cv,(left, top), (right, bottom), color, thick)
+                cv2.imwrite('predictions/drawn_'+image, image_cv)
+
         return predictions_dict
-
-    def visualize_predictions(self, predictions):
-        # This function will visualize all the bounding boxes for the prediction made in the testset. It will save the images with predictions in a new folder "predictions"
-        print('Visualizing predictions..')
-        if(not os.path.isdir('predictions')):
-            os.mkdir('predictions')
-        for image in os.listdir(self.testset):
-            if(image.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif'))):
-                image_cv = cv2.imread(os.path.join(self.testset,image))
-            else:
-                continue
-            color = (0,255,0)
-            imgHeight, imgWidth, _ = image_cv.shape
-            thick = int((imgHeight + imgWidth) // 900)
-
-            boxes_predicted = predictions[image]
-            for box in boxes_predicted:
-                left = box[0]
-                top = box[1]
-                right = box[2]
-                bottom = box[3]
-                cv2.rectangle(image_cv,(left, top), (right, bottom), color, thick)
-            cv2.imwrite('predictions/drawn_'+image, image_cv)
 
 
 if __name__ == '__main__':
@@ -179,9 +179,8 @@ if __name__ == '__main__':
     model.activate_gpu()
 
     # # Creating the detector
-    yolov4_detector = Detector(model,True,608,608,r'datasets\visdrone\test2')
-    pred = yolov4_detector.detect_in_images(0.3)
-    yolov4_detector.visualize_predictions(pred)
+    yolov4_detector = Detector(model,True,608,608,r'datasets\visdrone\test2',keep_aspect_ratio=False)
+    pred = yolov4_detector.detect_in_images(0.3,False,False)
 
     meter = Metric(r'datasets\visdrone\test2\_annotations.txt',r'datasets\visdrone\test2')
     metriche = meter.precision_recall(pred,0.3)

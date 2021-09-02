@@ -10,37 +10,46 @@ import pickle
 # This test is meant to inspect how the input resolution influeces the detection performance
 # TEST 1
 # Parameters:
-# Darknet with pretrained weights. Changing input resolution. Confidence threshold set to 0.4. IoU threshold set to 0.5.
-# Objective -> get precision and recall for each input resolution on the complete VISDRONE test set and write it on a txtfile. Also get precision, recall for small medium and large objects on the complete visdrone.
-#resolutions = [416,512,608,704,800,896,992,1088]
-resolutions = [608]
-anno_path = r'datasets\sard\test\_annotations.txt'
-ground_truth_dict = parse_gtruth(anno_path)
-# DARKNET
+# Pretrained_weights
+resolutions = [416,512,608,704,800,896,992,1088]
+anno_path = r'datasets\visdrone\test\_annotations.txt'
+dataset_path = r'datasets\visdrone\test'
 # Creating the model
-model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
-model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\trained_weights\Yolov4_epoch10.pth')
+model = Yolov4(yolov4conv137weight=None,n_classes=80,inference=True)
+model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\yolov4.pth')
 model.activate_gpu()
 # Creating element to measure metrics
-metrica = Metric(anno_path,ground_truth_dict)
+metrica = Metric(anno_path,dataset_path)
 # Creating file to store results
-file = open(r'tests\input_resolution\sard\trained_weights\test.txt','w')
-
+file = open(r'tests\input_resolution\visdrone\pretrained\no_keep_aspect_ratio\test.txt','w')
+iou_list = [0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]
+confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.20,0.15,0.10,0.05]
 for resolution in resolutions:
-    # Creating the detector
     print('Calculating for resolution '+str(resolution)+'x'+str(resolution))
-    yolov4_detector = Detector(model,True,resolution,resolution,r'datasets\sard\test')
-    predictions = yolov4_detector.detect_in_images(0.4,True)
-    #print(predictions)
-    filehandler = open(r'tests\input_resolution\sard\trained_weights\predictions_'+str(resolution)+'.pkl', 'wb')
-    pickle.dump(predictions, filehandler)
-    overall_values = metrica.precision_recall(predictions,0.5)
-    #small_values, medium_values, large_values = metrica.calculate_precision_recall_small_medium_large(predictions,0.5,72,242)
-    # Saving values
-    file.write(str(resolution)+'x'+str(resolution)+'\n')
-    file.write('Overall precision: '+str(overall_values[0])+'  Overall recall: '+str(overall_values[1])+'  Overall f1 score: '+str(overall_values[2])+'\n')
-    #file.write('Small obj. precision: '+str(small_values[0])+'  Small obj. recall: '+str(small_values[1])+'  Small obj. f1 score: '+str(small_values[2])+'\n')
-    #file.write('Medium obj. precision: '+str(medium_values[0])+'  Medium obj. recall: '+str(medium_values[1])+'  Medium obj. f1 score: '+str(medium_values[2])+'\n')
-    #file.write('Large obj. precision: '+str(large_values[0])+'  Large obj. recall: '+str(large_values[1])+'  Large obj. f1 score: '+str(large_values[2])+'\n\n')
+    # Creating the detector
+    yolov4_detector = Detector(model,True,resolution,resolution,dataset_path,keep_aspect_ratio=False)
+    # Get the predictions with a low confidence 
+    predictions_dict = yolov4_detector.detect_in_images(0.01,False,False)
+    for iou in iou_list:
+        print('Calculating for iou threshold '+str(iou))
+        values = metrica.calculate_precision_recall_f1_curve(predictions_dict,confidence_steps,iou,plot_graph=False)
+        # # Saving values
+        # for i in range(len(confidence_steps)):
+        #     file.write(str(resolution)+'x'+str(resolution)+'\n')
+        #     file.write('Iou threshold for true positive: '+str(iou)+'\n')
+        #     file.write('Confidence for prediction: '+str(confidence_steps[i])+'\n')
+        #     file.write('Total precision: '+str(np.around(values[0][i],2))+'  Total recall: '+str(np.around(values[1][i],2))+'  Total f1 score: '+str(np.around(values[2][i]))+'\n')
+        #     file.write('Small objects\n')
+        #     file.write('Precision: '+str(np.around(values[3][i]))+'  Recall: '+str(np.around(values[4][i]))+'\n')
+        #     file.write('Medium objects\n')
+        #     file.write('Precision: '+str(np.around(values[5][i]))+'  Recall: '+str(np.around(values[6][i]))+'\n')
+        #     file.write('Large objects\n')
+        #     file.write('Precision: '+str(np.around(values[7][i]))+'  Recall: '+str(np.around(values[8][i],2))+'\n\n')
+        # Calculating average precision and recall
+        file.write(str(resolution)+'x'+str(resolution)+'\n')
+        file.write('Iou threshold for true positive: '+str(iou)+'\n')
+        average_prec, average_rec = metrica.calc_AP_AR(values[0],values[1])
+        file.write('Average precision: '+str(np.around(average_prec,2))+'\n')
+        file.write('Average recall: '+str(np.around(average_rec,2))+'\n\n')
 
 file.close()

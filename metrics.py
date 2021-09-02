@@ -163,13 +163,14 @@ class Metric():
 
         return [precision, recall, f1, small_precision, small_recall, f1_small, medium_precision, medium_recall, f1_medium, large_precision, large_recall, f1_large]
 
-    def calculate_precision_recall_curve(self, predictions_dict, iou_threshold, plot_graph=True):
+    def calculate_precision_recall_f1_curve(self, predictions_dict, confidence_steps, iou_threshold, plot_graph=True):
         # Function that plots precision recall values for different confidences to create a curve
         # INPUT
         # predictions_list = a list of predictions for a set of images (at low confidence, for example 0.01)
         # iou_threhsold = the IOU threhsold used to quantify true positive
         precision_list = []
         recall_list = []
+        f1_list = []
         prec_list_small = []
         rec_list_small = []
         prec_list_medium = []
@@ -183,9 +184,7 @@ class Metric():
                 list_of_predictions.append((key,index,value[index][5])) 
         ordered_list_prediction = sorted(list_of_predictions, key=lambda x: x[2],reverse=True)
         # Creating new prediction dict, inserting one bbox at a time
-        confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.20,0.15,0.10,0.05,0]
         for confidence_step in confidence_steps:
-            print('Calculating for confidence step: ',confidence_step)
             new_pred_dict = {}
             for bbox in ordered_list_prediction:
                 if(bbox[0] in new_pred_dict and bbox[2]>confidence_step):
@@ -194,18 +193,18 @@ class Metric():
                     new_pred_dict[bbox[0]] = [predictions_dict[bbox[0]][bbox[1]]]
                 # Every time calculate precision recall etc
             metr_values = self.precision_recall(new_pred_dict,iou_threshold)
-            if(metr_values[0]!=0 or metr_values[1]!=0):
-                precision_list.append(metr_values[0])
-                recall_list.append(metr_values[1])
-            if(metr_values[3]!=0 or metr_values[4]!=0):
-                prec_list_small.append(metr_values[3])
-                rec_list_small.append(metr_values[4])
-            if(metr_values[6]!=0 or metr_values[7]!=0):
-                prec_list_medium.append(metr_values[6])
-                rec_list_medium.append(metr_values[7])
-            if(metr_values[9]!=0 or metr_values[10]!=0):
-                prec_list_large.append(metr_values[9])
-                rec_list_large.append(metr_values[10])
+            precision_list.append(metr_values[0])
+            recall_list.append(metr_values[1])
+            f1_list.append(metr_values[2])
+            
+            prec_list_small.append(metr_values[3])
+            rec_list_small.append(metr_values[4])
+            
+            prec_list_medium.append(metr_values[6])
+            rec_list_medium.append(metr_values[7])
+            
+            prec_list_large.append(metr_values[9])
+            rec_list_large.append(metr_values[10])
         
         if(plot_graph):
             plt.figure()
@@ -234,7 +233,7 @@ class Metric():
             
             plt.show()
 
-        return precision_list, recall_list, prec_list_small, rec_list_small, prec_list_medium, rec_list_medium, prec_list_large, rec_list_large
+        return precision_list, recall_list, f1_list, prec_list_small, rec_list_small, prec_list_medium, rec_list_medium, prec_list_large, rec_list_large
 
     def calc_AP_AR(self,precision_list, recall_list):
         # Function to calculate the average precision
