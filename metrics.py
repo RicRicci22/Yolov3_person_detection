@@ -1,22 +1,28 @@
 import numpy as np 
 import matplotlib.pyplot as plt
+import os 
+from copy import deepcopy
 # This file will contain some functions to perform metrics on a dataset
 # It will work on sard and visdrone datasets to be more precise.
 
 # The idea is that this to be a class, and each object will be created passing a dataset, so that the object will perform metrics on a specific dataset
 # Every metric object is bound to a ground truth
 class Metric():
-    def __init__(self,ground_truth_path):
+    def __init__(self,ground_truth_path,dataset_directory):
+        self.dataset_directory = dataset_directory
         self.ground_truth_path = ground_truth_path
+        files_in_dataset_folder = [file for file in os.listdir(self.dataset_directory)]
         # Parsing ground truth 
         ground_truth_dict = {}
         file = open(self.ground_truth_path,'r')
         for row in file.readlines():
             pieces = row.split(' ')
-            ground_truth_dict[pieces[0]]=[]
-            for bbox in pieces[1:]:
-                coords = bbox.split(',')
-                ground_truth_dict[pieces[0]].append([int(coords[0]),int(coords[1]),int(coords[2]),int(coords[3]),int(coords[4]),1])
+            # Check if there is the corresponding image
+            if(pieces[0] in files_in_dataset_folder):
+                ground_truth_dict[pieces[0]]=[]
+                for bbox in pieces[1:]:
+                    coords = bbox.split(',')
+                    ground_truth_dict[pieces[0]].append([int(coords[0]),int(coords[1]),int(coords[2]),int(coords[3]),int(coords[4]),1])
         self.ground_truth = ground_truth_dict
 
     def __str__(self):
@@ -49,6 +55,8 @@ class Metric():
         small_positive = 0
         medium_positive = 0 
         large_positive = 0
+        # Create a copy of the ground truth to iterate 
+        copy_gt_truth = deepcopy(self.ground_truth)
         # Calculating true positive
         for key in self.ground_truth.keys():
             if(key in predictions_dict.keys()):
@@ -65,8 +73,9 @@ class Metric():
                     max_indices = np.where(matrix == max_value)
                     true_positive+=1
                     # Check if the truth is small, medium large 
-                    box = self.ground_truth[key][max_indices[0][0]]
-                    #print(bbox_truth)
+                    box = copy_gt_truth[key][max_indices[0][0]]
+                    # Remove bbox from ground truth
+                    del copy_gt_truth[key][max_indices[0][0]]
                     area = (box[3]-box[1])*(box[2]-box[0])
                     if(area<256):
                         small_positive+=1
@@ -92,17 +101,15 @@ class Metric():
         f1_large = 0 
 
         for key in self.ground_truth.keys():
-            # So I can take also a subset of a dataset without modifying annotations
-            if(key in predictions_dict.keys()):
-                for box in self.ground_truth[key]:
-                    area = (box[3]-box[1])*(box[2]-box[0])
-                    if(area<256):
-                        small_g_truth+=1
-                    elif(area>1200):
-                        large_g_truth+=1
-                    else:
-                        medium_g_truth+=1
-                tot_g_truth += len(self.ground_truth[key])
+            for box in self.ground_truth[key]:
+                area = (box[3]-box[1])*(box[2]-box[0])
+                if(area<256):
+                    small_g_truth+=1
+                elif(area>1200):
+                    large_g_truth+=1
+                else:
+                    medium_g_truth+=1
+            tot_g_truth += len(self.ground_truth[key])
 
         for key in predictions_dict.keys():
             tot_pred += len(predictions_dict[key])

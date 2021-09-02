@@ -180,11 +180,11 @@ if __name__ == '__main__':
 
     # # Creating the detector
     yolov4_detector = Detector(model,True,608,608,r'datasets\visdrone\test2')
-    pred = yolov4_detector.detect_in_images(0.2)
-    #yolov4_detector.visualize_predictions(pred)
+    pred = yolov4_detector.detect_in_images(0.8)
+    yolov4_detector.visualize_predictions(pred)
 
-    meter = Metric(r'datasets\visdrone\test2\_annotations.txt')
-    metriche = meter.precision_recall(pred,0.1)
+    meter = Metric(r'datasets\visdrone\test2\_annotations.txt',r'datasets\visdrone\test2')
+    metriche = meter.precision_recall(pred,0.5)
     #precision_list, recall_list, small_prec, small_rec, medium_prec, medium_rec, large_prec, large_rec = meter.calculate_precision_recall_curve(pred,0.5, plot_graph=True)
     print('TOTAL')
     print('Precision: '+str(metriche[0]))
