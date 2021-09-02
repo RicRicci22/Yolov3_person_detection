@@ -7,7 +7,7 @@ Next steps:
 - [X] insert calculation for AP and AR
 - [X] insert calculation for AP small medium large and the same for AR (even tough it does not have much sense maybe..)
 - [X] insert validation using training
-- [ ] implementing loss validation during training 
+- [X] implementing loss validation during training 
 
 Tests:
 - [ ] customizing anchor boxes 
