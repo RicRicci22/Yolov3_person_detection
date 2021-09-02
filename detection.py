@@ -175,16 +175,16 @@ if __name__ == '__main__':
     # PYTORCH
     # Creating the model
     model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
-    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\testino.pth')
+    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\testolino.pth')
     model.activate_gpu()
 
     # # Creating the detector
     yolov4_detector = Detector(model,True,608,608,r'datasets\visdrone\test2')
-    pred = yolov4_detector.detect_in_images(0.8)
+    pred = yolov4_detector.detect_in_images(0.3)
     yolov4_detector.visualize_predictions(pred)
 
     meter = Metric(r'datasets\visdrone\test2\_annotations.txt',r'datasets\visdrone\test2')
-    metriche = meter.precision_recall(pred,0.5)
+    metriche = meter.precision_recall(pred,0.3)
     #precision_list, recall_list, small_prec, small_rec, medium_prec, medium_rec, large_prec, large_rec = meter.calculate_precision_recall_curve(pred,0.5, plot_graph=True)
     print('TOTAL')
     print('Precision: '+str(metriche[0]))

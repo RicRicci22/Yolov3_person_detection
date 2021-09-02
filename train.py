@@ -13,8 +13,6 @@
 import logging
 import os
 from collections import deque
-from detection import Detector
-from metrics import Metric
 
 from tqdm import tqdm
 import numpy as np
@@ -29,11 +27,6 @@ from tool.utils import *
 from dataset import Yolo_dataset
 from cfg import Cfg
 from models import Yolov4
-
-import matplotlib.animation as animation
-import matplotlib.pyplot as plt
-
-#from tool.utils_iou import bboxes_iou
 
 
 def bboxes_iou(bboxes_a, bboxes_b, xyxy=True):
@@ -299,7 +292,6 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=20):
     
     # learning rate setup
     def burnin_schedule(i):
-        #print(i)
         if i < config.burn_in:
             factor = pow(i / config.burn_in, 4)
         elif i < config.steps[0]:
@@ -327,8 +319,6 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=20):
     scheduler = optim.lr_scheduler.LambdaLR(optimizer, burnin_schedule)
 
     criterion = Yolo_loss(device=device, batch=config.batch // config.subdivisions, n_classes=config.classes)
-    # scheduler = ReduceLROnPlateau(optimizer, mode='max', verbose=True, patience=6, min_lr=1e-7)
-    # scheduler = CosineAnnealingWarmRestarts(optimizer, 0.001, 1e-6, 20)
 
     save_prefix = 'Yolov4_epoch'
     saved_models = deque()
@@ -387,28 +377,31 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=20):
                     model.zero_grad()
 
                 if global_step % (log_step * config.subdivisions) == 0: # After tot images, print info 
-                    print('\nTotal loss: ',loss.item(),'\nLast learning rate: ',scheduler.get_last_lr())
-                    print('\nLoss center bboxes: ',loss_xy.item(),'\nLoss bboxes dimension: ',loss_wh.item(),'\nLoss objectness: ',loss_obj.item(),'\nLoss class: ',loss_cls.item())
-                    # # Calculating validation loss 
-                    # print('Calculating validation loss')
-                    # valid_loss = 0.0
+                    print('\n\nTotal loss: ',loss.item(),'\nLast learning rate: ',scheduler.get_last_lr())
+                    print('Loss center bboxes: ',loss_xy.item(),'\nLoss bboxes dimension: ',loss_wh.item(),'\nLoss objectness: ',loss_obj.item(),'\nLoss class: ',loss_cls.item())
+                    # Calculating validation loss 
+                    print('Calculating validation loss')
+                    valid_loss = 0.0
                     
-                    # with torch.no_grad():
-                    #     model.eval()     # Optional when not using Model Specific layer
-                    #     for i_val, batch_val in enumerate(val_loader):
-                    #         images_val = batch_val[0] # shape [batch_size, n_ch, width, height]
-                    #         bboxes_val = batch_val[1] # shape [batch_size, n_boxes, box_coord+n_classes]
+                    with torch.no_grad():
+                        # Creating the temporary model for evaluation
+                        model.eval()
+                        for i_val, batch_val in enumerate(val_loader):
+                            if(i_val>10):
+                                break
+                            images_val = batch_val[0] # shape [batch_size, n_ch, width, height]
+                            bboxes_val = batch_val[1] # shape [batch_size, n_boxes, box_coord+n_classes]
 
-                    #         images_val = images.to(device=device, dtype=torch.float32)
-                    #         bboxes_val = bboxes.to(device=device)
+                            images_val = images.to(device=device, dtype=torch.float32)
+                            bboxes_val = bboxes.to(device=device)
 
-                    #         bboxes_pred_val = model(images_val) # shape [num_resolutions, batch_size, (5+n_ch)*num_boxes, grid, grid]
+                            bboxes_pred_val = model(images_val) # shape [num_resolutions, batch_size, (5+n_ch)*num_boxes, grid, grid]
 
-                    #         losses = criterion(bboxes_pred_val, bboxes_val)
-                    #         valid_loss+=losses[0].cpu().detach().numpy()
-                    #     valid_loss/=i_val
+                            losses = criterion(bboxes_pred_val, bboxes_val)
+                            valid_loss+=losses[0].cpu().detach().numpy()
+                        valid_loss/=i_val
                     
-                    # model.train()
+                    model.train()
                     # # Update lists 
                     # loss_list.append(loss.item())
                     # step_list.append(global_step)
