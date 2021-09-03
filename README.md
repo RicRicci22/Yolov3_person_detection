@@ -8,7 +8,8 @@ Next steps:
 - [X] insert calculation for AP small medium large and the same for AR (even tough it does not have much sense maybe..)
 - [X] insert validation using training
 - [X] implementing loss validation during training
-- [ ] create the new "per frame" metric 
+- [X] create the new "per frame" metric 
+- [ ] create new visdrone dataset with images containing no person (balanced between containing or not) 
 - [ ] jetson nano developer kit (https://developer.nvidia.com/embedded/jetson-nano-developer-kit)
 - [ ] fine tuning (partendo da pesi di yolov4, freezing) 
 
