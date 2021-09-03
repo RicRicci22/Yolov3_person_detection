@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 # Parameters:
 # Pretrained_weights
 resolutions = [416,512,608,704,800,896,992,1088]
-anno_path = r'datasets\sard\test\_annotations.txt'
-dataset_path = r'datasets\sard\test'
+anno_path = r'datasets\visdrone\test\_annotations.txt'
+dataset_path = r'datasets\visdrone\test'
 # Creating the model
 model = Yolov4(yolov4conv137weight=None,n_classes=80,inference=True)
 model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\yolov4.pth')
@@ -21,7 +21,7 @@ model.activate_gpu()
 # Creating element to measure metrics
 metrica = Metric(anno_path,dataset_path)
 # Creating file to store results
-file = open(r'tests\input_resolution\sard\pretrained\no_keep_aspect_ratio\test.txt','w')
+file = open(r'tests\input_resolution\visdrone\pretrained\no_keep_aspect_ratio\test.txt','w')
 iou_list = [0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]
 confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.20,0.15,0.10,0.05]
 for resolution in resolutions:
@@ -68,7 +68,7 @@ for resolution in resolutions:
     ax.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
     fig.tight_layout()
     # Save figure
-    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\sard\pretrained\no_keep_aspect_ratio","precision_at_"+str(resolution)+"x"+str(resolution)))
+    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone\pretrained\no_keep_aspect_ratio","precision_at_"+str(resolution)+"x"+str(resolution)))
 
 
     fig2 = plt.figure(figsize=(10,5))
@@ -89,7 +89,7 @@ for resolution in resolutions:
     ax2.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
     fig2.tight_layout()
     # Save figure
-    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\sard\pretrained\no_keep_aspect_ratio","recall_at_"+str(resolution)+"x"+str(resolution)))
+    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone\pretrained\no_keep_aspect_ratio","recall_at_"+str(resolution)+"x"+str(resolution)))
 
     fig3 = plt.figure(figsize=(5,5))
     ax3 = fig3.subplots()
@@ -101,7 +101,7 @@ for resolution in resolutions:
     ax3.set_title('AVERAGE PRECISION VS IOU')
     fig3.tight_layout()
     # Save figure
-    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\sard\pretrained\no_keep_aspect_ratio","average_precision_at_"+str(resolution)+"x"+str(resolution)))
+    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone\pretrained\no_keep_aspect_ratio","average_precision_at_"+str(resolution)+"x"+str(resolution)))
 
     fig4= plt.figure(figsize=(5,5))
     ax4 = fig4.subplots()
@@ -113,7 +113,7 @@ for resolution in resolutions:
     ax4.set_title('AVERAGE RECALL VS IOU')
     fig4.tight_layout()
     # Save figure
-    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\sard\pretrained\no_keep_aspect_ratio","average_recall_at_"+str(resolution)+"x"+str(resolution)))
+    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone\pretrained\no_keep_aspect_ratio","average_recall_at_"+str(resolution)+"x"+str(resolution)))
 
     plt.close('all')
 
