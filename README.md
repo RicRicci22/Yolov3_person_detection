@@ -1,4 +1,4 @@
-# master_degree
+# A Yolov4-based person detection system for search and rescue operations in complex backgrounds
 A repository to keep track of the work for my master degree
 
 Next steps:
