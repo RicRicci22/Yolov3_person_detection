@@ -300,25 +300,27 @@ class Metric():
         false_negative = 0 
         for key in self.ground_truth.keys():
             truth = self.ground_truth[key]
-            if(key in predictions_dict.keys()):
-                if(len(truth)==0):
-                    # False positive 
-                    false_positive+=1
-                else:
-                    # Calculate true positive and false positive
-                    matrix = np.zeros((len(self.ground_truth[key]),len(predictions_dict[key])))
-                    for i in range(len(self.ground_truth[key])):
-                        for j in range(len(predictions_dict[key])):
-                            matrix[i,j]=self.evaluate_IoU(self.ground_truth[key][i],predictions_dict[key][j])
-                    if(np.amax(matrix)>iou):
-                        # True positive 
-                        true_positive+=1
+            if(len(truth)==0 and len(predictions_dict[key])==0):
+                # True negative 
+                true_negative+=1
+            elif(len(truth)==0 and len(predictions_dict[key])!=0):
+                # False positive
+                false_positive+=1
+            elif(len(truth)!=0 and len(predictions_dict[key])==0):
+                false_negative+=1
             else:
-                if(len(truth)==0):
-                    # True negative
-                    true_negative+=1
+                matrix = np.zeros((len(self.ground_truth[key]),len(predictions_dict[key])))
+                for i in range(len(self.ground_truth[key])):
+                    for j in range(len(predictions_dict[key])):
+                        matrix[i,j]=self.evaluate_IoU(self.ground_truth[key][i],predictions_dict[key][j])
+                if(np.amax(matrix)>iou):
+                    # True positive 
+                    true_positive+=1
                 else:
-                    # False negative
-                    false_negative+=1
-                    
+                    false_positive+=1
+        
+        print('True positive: ',true_positive)
+        print('False positive: ',false_positive)
+        print('True negative: ',true_negative)
+        print('False negative: ',false_negative)
         return true_positive, false_positive, true_negative, false_negative
