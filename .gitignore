@@ -165,7 +165,7 @@ log/
 
 # Datasets
 datasets/
-#tests/
+tests/
 
 # Predictions 
 predictions/

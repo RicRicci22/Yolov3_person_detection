@@ -291,6 +291,10 @@ class Metric():
 
         return map, mar, map_small, mar_small, map_medium, mar_medium, map_large, mar_large
             
+    # NEW METRIC IMPLEMENTATION 
+    def frame_metric():
+        print('under construction')
+        pass 
 
 
 
