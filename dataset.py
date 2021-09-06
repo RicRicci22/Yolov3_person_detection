@@ -130,20 +130,17 @@ def image_data_augmentation(mat, w, h, flip, dhue, dsat, dexp, gaussian_noise, b
             sized = np.clip(cv2.cvtColor(hsv_src, cv2.COLOR_HSV2RGB), 0, 255)  # HSV to RGB (the same as previous)
         else:
             sized *= dexp
-
     if blur:
         if blur == 1:
-            dst = cv2.GaussianBlur(sized, (5, 5), 0)
-        else:
-            ksize = int((blur / 2) * 2 + 1)
-            dst = cv2.GaussianBlur(sized, (ksize, ksize), 0)
-
-        if blur == 1:
-            # Keep the resolution inside bboxes
+            dst = cv2.GaussianBlur(sized, (7, 7), 0)
             for b in truth:
                 dst[int(b[0]):int(b[2]),int(b[1]):int(b[3]),:] = sized[int(b[0]):int(b[2]),int(b[1]):int(b[3]),:]
+        else:
+            dst = cv2.GaussianBlur(sized, (7, 7), 0)
+
         sized = dst
 
+    # Gaussian noise 
     if gaussian_noise:
         # Could not be negative the variance
         sigma = gaussian_noise**0.5
@@ -154,10 +151,10 @@ def image_data_augmentation(mat, w, h, flip, dhue, dsat, dexp, gaussian_noise, b
         # Clipping between 0 and 255
         sized = np.clip(sized,0,255)
     # except:
-    #     print("OpenCV can't augment image: " + str(w) + " x " + str(h))
+    #     print("OpenCV can't augment image!")
     #     sized = mat
 
-    return sized
+    return sized.astype('float32')
 
 
 def filter_truth(bboxes, dx, dy, sx, sy, xd, yd):
@@ -251,12 +248,32 @@ class Yolo_dataset(Dataset):
         img_path = self.imgs[index]
         bboxes = np.array(self.truth.get(img_path), dtype=np.float)
         img_path = os.path.join(self.cfg.train_dataset_dir, img_path)
+        aug_variable = 0
+        # Creating augmentation variable
+        # Both methods selected
+        if(self.cfg.mosaic and self.cfg.mixup):
+            # Choose one between mosaic and mixup 
+            temp = random.randint(0,1)
+            if temp:
+                # Mosaic 
+                aug_variable = 3
+            else:
+                # Mixup 
+                aug_variable = 1 
+        else:
+            if(self.cfg.mosaic):
+                # Mosaic 
+                aug_variable = 3
+            
+            if(self.cfg.mixup):
+                # Mixup  
+                aug_variable = 1
         
-        use_mixup = self.cfg.mixup
+        # Randomly disable mosaic and mixup 
         if random.randint(0, 1):
-            use_mixup = 0
+            aug_variable = 0
 
-        if use_mixup == 3:
+        if aug_variable == 3:
             min_offset = 0.2
             cut_x = random.randint(int(self.cfg.width * min_offset), int(self.cfg.width * (1 - min_offset)))
             cut_y = random.randint(int(self.cfg.height * min_offset), int(self.cfg.height * (1 - min_offset)))
@@ -267,7 +284,7 @@ class Yolo_dataset(Dataset):
         out_img = np.zeros([self.cfg.height, self.cfg.width, 3])
         out_bboxes = []
 
-        for i in range(use_mixup + 1):
+        for i in range(aug_variable + 1):
             if i != 0:
                 img_path = random.choice(list(self.truth.keys()))
                 bboxes = np.array(self.truth.get(img_path), dtype=np.float)
@@ -276,26 +293,20 @@ class Yolo_dataset(Dataset):
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             if img is None:
                 continue
-            oh, ow, oc = img.shape
+            oh, ow, _ = img.shape
 
             dhue = rand_uniform_strong(-self.cfg.hue, self.cfg.hue)
             dsat = rand_scale(self.cfg.saturation)
             dexp = rand_scale(self.cfg.exposure)
 
             if(self.cfg.flip and random.randint(0,1)):
-                flip = self.cfg.flip_value
+                flip = random.randint(-1,1)
             else:
                 flip = -2
 
             if (self.cfg.blur):
-                tmp_blur = random.randint(0,2)  # 0 - disable, 1 - blur background, 2 - blur the whole image
-                if tmp_blur == 0:
-                    blur = 0
-                elif tmp_blur == 1:
-                    blur = 1
-                else:
-                    blur = self.cfg.blur
-            
+                blur = random.randint(0,2)  # 0 - disable, 1 - blur background, 2 - blur the whole image
+
             # Setting gaussian noise 
             if self.cfg.gaussian_noise and random.randint(0, 1):
                 gaussian_noise = random.randint(1,10)/1000
@@ -305,17 +316,17 @@ class Yolo_dataset(Dataset):
 
             truth, min_w_h = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip, swidth,
                                                   sheight, self.cfg.width, self.cfg.height)
+            
             if (min_w_h / 8) < blur and blur > 1:  # disable blur if one of the objects is too small
-                #blur = min_w_h / 8
                 blur = 0
 
             ai = image_data_augmentation(img, self.cfg.width, self.cfg.height, flip, dhue, dsat, dexp, gaussian_noise, blur, truth)
 
-            if use_mixup == 0:
+            if aug_variable == 0:
                 # NOTHING
                 out_img = ai
                 out_bboxes = truth
-            if use_mixup == 1:
+            if aug_variable == 1:
                 # MIXUP
                 if i == 0:
                     old_img = ai.copy()
@@ -323,13 +334,13 @@ class Yolo_dataset(Dataset):
                 elif i == 1:
                     out_img = cv2.addWeighted(ai, 0.5, old_img, 0.5, 0.2)
                     out_bboxes = np.concatenate([old_truth, truth], axis=0)
-            elif use_mixup == 3:
-
+            elif aug_variable == 3:
+                # MOSAIC
                 out_img, out_bbox = blend_truth_mosaic(out_img, ai, truth.copy(), self.cfg.width, self.cfg.height, cut_x,
                                                        cut_y, i)
                 out_bboxes.append(out_bbox)
                 
-        if use_mixup == 3:
+        if aug_variable == 3:
             out_bboxes = np.concatenate(out_bboxes, axis=0)
         out_bboxes1 = np.zeros([self.cfg.boxes, 5])
         out_bboxes1[:min(out_bboxes.shape[0], self.cfg.boxes)] = out_bboxes[:min(out_bboxes.shape[0], self.cfg.boxes)]
@@ -347,8 +358,6 @@ class Yolo_dataset(Dataset):
         # Resizing
         img = cv2.resize(img, (self.cfg.width, self.cfg.height), cv2.INTER_LINEAR) 
 
-        # # Remove unnecessary informations
-        # boxes = bboxes_with_cls_id[...,:4]
         # Resize bbox to new width height
         boxes_to_insert[:, 0] *= (self.cfg.width / original_width)
         boxes_to_insert[:, 2] *= (self.cfg.width / original_width)
