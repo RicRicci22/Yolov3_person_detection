@@ -23,13 +23,55 @@ from torch import optim
 from torch.nn import functional as F
 from easydict import EasyDict as edict
 from tool.utils import *
-
 from dataset import Yolo_dataset
 from cfg import Cfg
 from models import Yolov4
 
 
-def bboxes_iou(bboxes_a, bboxes_b, xyxy=True):
+# def bboxes_iou(bboxes_a, bboxes_b, xyxy=True):
+#     """Calculate the Intersection of Unions (IoUs) between bounding boxes.
+#     IoU is calculated as a ratio of area of the intersection
+#     and area of the union.
+#     Args:
+#         bbox_a (array): An array whose shape is :math:`(N, 4)`.
+#             :math:`N` is the number of bounding boxes.
+#             The dtype should be :obj:`numpy.float32`.
+#         bbox_b (array): An array similar to :obj:`bbox_a`,
+#             whose shape is :math:`(K, 4)`.
+#             The dtype should be :obj:`numpy.float32`.
+#     Returns:
+#         array:
+#         An array whose shape is :math:`(N, K)`. \
+#         An element at index :math:`(n, k)` contains IoUs between \
+#         :math:`n` th bounding box in :obj:`bbox_a` and :math:`k` th bounding \
+#         box in :obj:`bbox_b`.
+#     from: https://github.com/chainer/chainercv
+#     """
+#     if bboxes_a.shape[1] != 4 or bboxes_b.shape[1] != 4:
+#         raise IndexError
+
+#     # top left
+#     if xyxy:
+#         tl = torch.max(bboxes_a[:, None, :2], bboxes_b[:, :2])
+#         # bottom right
+#         br = torch.min(bboxes_a[:, None, 2:], bboxes_b[:, 2:])
+#         area_a = torch.prod(bboxes_a[:, 2:] - bboxes_a[:, :2], 1)
+#         area_b = torch.prod(bboxes_b[:, 2:] - bboxes_b[:, :2], 1)
+#     else:
+#         tl = torch.max((bboxes_a[:, None, :2] - bboxes_a[:, None, 2:] / 2),
+#                        (bboxes_b[:, :2] - bboxes_b[:, 2:] / 2))
+#         # bottom right
+#         br = torch.min((bboxes_a[:, None, :2] + bboxes_a[:, None, 2:] / 2),
+#                        (bboxes_b[:, :2] + bboxes_b[:, 2:] / 2))
+
+#         area_a = torch.prod(bboxes_a[:, 2:], 1)
+#         area_b = torch.prod(bboxes_b[:, 2:], 1)
+#     en = (tl < br).type(tl.type()).prod(dim=2)
+#     area_i = torch.prod(br - tl, 2) * en  # * ((tl < br).all())
+    
+#     return area_i / (area_a[:, None] + area_b - area_i)
+
+def bboxes_iou(bboxes_a, bboxes_b, xyxy=True, GIoU=False, DIoU=False, CIoU=False):
     """Calculate the Intersection of Unions (IoUs) between bounding boxes.
     IoU is calculated as a ratio of area of the intersection
     and area of the union.
@@ -47,30 +89,73 @@ def bboxes_iou(bboxes_a, bboxes_b, xyxy=True):
         :math:`n` th bounding box in :obj:`bbox_a` and :math:`k` th bounding \
         box in :obj:`bbox_b`.
     from: https://github.com/chainer/chainercv
+    https://github.com/ultralytics/yolov3/blob/eca5b9c1d36e4f73bf2f94e141d864f1c2739e23/utils/utils.py#L262-L282
     """
     if bboxes_a.shape[1] != 4 or bboxes_b.shape[1] != 4:
         raise IndexError
 
-    # top left
     if xyxy:
+        # intersection top left
         tl = torch.max(bboxes_a[:, None, :2], bboxes_b[:, :2])
-        # bottom right
+        # intersection bottom right
         br = torch.min(bboxes_a[:, None, 2:], bboxes_b[:, 2:])
+        # convex (smallest enclosing box) top left and bottom right
+        con_tl = torch.min(bboxes_a[:, None, :2], bboxes_b[:, :2])
+        con_br = torch.max(bboxes_a[:, None, 2:], bboxes_b[:, 2:])
+        # centerpoint distance squared
+        rho2 = ((bboxes_a[:, None, 0] + bboxes_a[:, None, 2]) - (bboxes_b[:, 0] + bboxes_b[:, 2])) ** 2 / 4 + (
+                (bboxes_a[:, None, 1] + bboxes_a[:, None, 3]) - (bboxes_b[:, 1] + bboxes_b[:, 3])) ** 2 / 4
+
+        w1 = bboxes_a[:, 2] - bboxes_a[:, 0]
+        h1 = bboxes_a[:, 3] - bboxes_a[:, 1]
+        w2 = bboxes_b[:, 2] - bboxes_b[:, 0]
+        h2 = bboxes_b[:, 3] - bboxes_b[:, 1]
+
         area_a = torch.prod(bboxes_a[:, 2:] - bboxes_a[:, :2], 1)
         area_b = torch.prod(bboxes_b[:, 2:] - bboxes_b[:, :2], 1)
     else:
+        # intersection top left
         tl = torch.max((bboxes_a[:, None, :2] - bboxes_a[:, None, 2:] / 2),
                        (bboxes_b[:, :2] - bboxes_b[:, 2:] / 2))
-        # bottom right
+        # intersection bottom right
         br = torch.min((bboxes_a[:, None, :2] + bboxes_a[:, None, 2:] / 2),
                        (bboxes_b[:, :2] + bboxes_b[:, 2:] / 2))
+
+        # convex (smallest enclosing box) top left and bottom right
+        con_tl = torch.min((bboxes_a[:, None, :2] - bboxes_a[:, None, 2:] / 2),
+                           (bboxes_b[:, :2] - bboxes_b[:, 2:] / 2))
+        con_br = torch.max((bboxes_a[:, None, :2] + bboxes_a[:, None, 2:] / 2),
+                           (bboxes_b[:, :2] + bboxes_b[:, 2:] / 2))
+        # centerpoint distance squared
+        rho2 = ((bboxes_a[:, None, :2] - bboxes_b[:, :2]) ** 2 / 4).sum(dim=-1)
+
+        w1 = bboxes_a[:, 2]
+        h1 = bboxes_a[:, 3]
+        w2 = bboxes_b[:, 2]
+        h2 = bboxes_b[:, 3]
 
         area_a = torch.prod(bboxes_a[:, 2:], 1)
         area_b = torch.prod(bboxes_b[:, 2:], 1)
     en = (tl < br).type(tl.type()).prod(dim=2)
     area_i = torch.prod(br - tl, 2) * en  # * ((tl < br).all())
-    
-    return area_i / (area_a[:, None] + area_b - area_i)
+    area_u = area_a[:, None] + area_b - area_i
+    iou = area_i / area_u
+
+    if GIoU or DIoU or CIoU:
+        if GIoU:  # Generalized IoU https://arxiv.org/pdf/1902.09630.pdf
+            area_c = torch.prod(con_br - con_tl, 2)  # convex area
+            return iou - (area_c - area_u) / area_c  # GIoU
+        if DIoU or CIoU:  # Distance or Complete IoU https://arxiv.org/abs/1911.08287v1
+            # convex diagonal squared
+            c2 = torch.pow(con_br - con_tl, 2).sum(dim=2) + 1e-16
+            if DIoU:
+                return iou - rho2 / c2  # DIoU
+            elif CIoU:  # https://github.com/Zzh-tju/DIoU-SSD-pytorch/blob/master/utils/box/box_utils.py#L47
+                v = (4 / math.pi ** 2) * torch.pow(torch.atan(w1 / h1).unsqueeze(1) - torch.atan(w2 / h2), 2)
+                with torch.no_grad():
+                    alpha = v / (1 - iou + v)
+                return iou - (rho2 / c2 + v * alpha)  # CIoU
+    return iou
 
 
 class Yolo_loss(nn.Module):
@@ -120,7 +205,8 @@ class Yolo_loss(nn.Module):
     def build_target(self, pred, labels, batchsize, fsize, n_ch, output_id):
         # target assignment
         tgt_mask = torch.zeros(batchsize, self.n_anchors, fsize, fsize, 4 + self.n_classes).to(device=self.device)
-        obj_mask = torch.ones(batchsize, self.n_anchors, fsize, fsize).to(device=self.device) # it was ones
+        obj_mask = torch.ones(batchsize, self.n_anchors, fsize, fsize).to(device=self.device) 
+
         # why ones????
         tgt_scale = torch.zeros(batchsize, self.n_anchors, fsize, fsize, 2).to(self.device)
         target = torch.zeros(batchsize, self.n_anchors, fsize, fsize, n_ch).to(self.device)
@@ -154,7 +240,7 @@ class Yolo_loss(nn.Module):
             # calculate iou between truth and reference anchors
             #print(truth_box)
             #print(self.ref_anchors[output_id])
-            anchor_ious_all = bboxes_iou(truth_box.cpu(), self.ref_anchors[output_id]) # shape n_truth_box, n_anchor_boxes
+            anchor_ious_all = bboxes_iou(truth_box.cpu(), self.ref_anchors[output_id], CIoU=True) # shape n_truth_box, n_anchor_boxes
             #print(anchor_ious_all)
 
             best_n_all = anchor_ious_all.argmax(dim=1) # shape n_truth_box
@@ -178,7 +264,7 @@ class Yolo_loss(nn.Module):
             #print(truth_box)
             #print(truth_box)
             #print(pred[b].shape)
-            pred_ious = bboxes_iou(pred[b].view(-1, 4), truth_box, xyxy=False)
+            pred_ious = bboxes_iou(pred[b].view(-1, 4), truth_box, xyxy=False, CIoU=True)
             #print(pred[b])
             #print(pred_ious)
             #print(pred[b].view(-1, 4).shape)
@@ -212,7 +298,7 @@ class Yolo_loss(nn.Module):
                         truth_w_all[b, ti] / torch.Tensor(self.masked_anchors[output_id])[best_n[ti], 0] + 1e-16)
                     target[b, a, j, i, 3] = torch.log(
                         truth_h_all[b, ti] / torch.Tensor(self.masked_anchors[output_id])[best_n[ti], 1] + 1e-16)
-                    target[b, a, j, i, 4] = 1 # object! 
+                    target[b, a, j, i, 4] = 1 # object in the target! 
                     target[b, a, j, i, 5 + labels[b, ti, 4].to(torch.int16).cpu().numpy()] = 1 # class! 
                     ##############################
                     tgt_scale[b, a, j, i, :] = torch.sqrt(2 - truth_w_all[b, ti] * truth_h_all[b, ti] / fsize / fsize)
@@ -256,7 +342,6 @@ class Yolo_loss(nn.Module):
             loss_wh += F.mse_loss(input=output[..., 2:4], target=target[..., 2:4], reduction='sum') / 2
             loss_obj += F.binary_cross_entropy(input=output[..., 4], target=target[..., 4], reduction='sum')
             loss_cls += F.binary_cross_entropy(input=output[..., 5:], target=target[..., 5:], reduction='sum')
-            #loss_l2 += F.mse_loss(input=output, target=target, reduction='sum')
 
         loss = loss_xy + loss_wh + loss_obj + loss_cls
 
@@ -276,7 +361,7 @@ def collate(batch):
     bboxes = torch.from_numpy(bboxes)
     return images, bboxes
 
-def train(model, device, config, epochs=5, save_cp=True, log_step=20):
+def train(model, device, config, epochs=5, save_cp=True, log_step=20, calc_loss_validation = True):
     train_dataset = Yolo_dataset(config.train_label, config, train=True)
     val_dataset = Yolo_dataset(config.val_label, config, train=False)
 
@@ -383,25 +468,26 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=20):
                     print('Calculating validation loss')
                     valid_loss = 0.0
                     
-                    with torch.no_grad():
-                        # Creating the temporary model for evaluation
-                        model.eval()
-                        for i_val, batch_val in enumerate(val_loader):
-                            if(i_val>10):
-                                break
-                            images_val = batch_val[0] # shape [batch_size, n_ch, width, height]
-                            bboxes_val = batch_val[1] # shape [batch_size, n_boxes, box_coord+n_classes]
+                    if(calc_loss_validation):
+                        with torch.no_grad():
+                            # Creating the temporary model for evaluation
+                            model.eval()
+                            for i_val, batch_val in enumerate(val_loader):
+                                if(i_val>10):
+                                    break
+                                images_val = batch_val[0] # shape [batch_size, n_ch, width, height]
+                                bboxes_val = batch_val[1] # shape [batch_size, n_boxes, box_coord+n_classes]
 
-                            images_val = images.to(device=device, dtype=torch.float32)
-                            bboxes_val = bboxes.to(device=device)
+                                images_val = images.to(device=device, dtype=torch.float32)
+                                bboxes_val = bboxes.to(device=device)
 
-                            bboxes_pred_val = model(images_val) # shape [num_resolutions, batch_size, (5+n_ch)*num_boxes, grid, grid]
+                                bboxes_pred_val = model(images_val) # shape [num_resolutions, batch_size, (5+n_ch)*num_boxes, grid, grid]
 
-                            losses = criterion(bboxes_pred_val, bboxes_val)
-                            valid_loss+=losses[0].cpu().detach().numpy()
-                        valid_loss/=i_val
+                                losses = criterion(bboxes_pred_val, bboxes_val)
+                                valid_loss+=losses[0].cpu().detach().numpy()
+                            valid_loss/=i_val
                     
-                    model.train()
+                        model.train()
                     # # Update lists 
                     # loss_list.append(loss.item())
                     # step_list.append(global_step)
@@ -478,15 +564,59 @@ def get_args(**kwargs):
 if __name__ == '__main__':
     cfg = get_args(**Cfg)
 
+    # TODO create training paradigm!
+    # Fine tuning starting from yolo pretrained weights
+    weight_path = r'C:\Users\Melgani\Desktop\master_degree\weight\yolov4.pth'
     device = torch.device('cuda')
-    pretrained_weights_path = r'C:\Users\Melgani\Desktop\master_degree\weight\yolov4.conv.137.pth'
-    model = Yolov4(yolov4conv137weight=pretrained_weights_path,n_classes=1)
-    model.to(device=device)
+    # Creating the empty model
+    model = Yolov4(yolov4conv137weight=None,n_classes=1)
+    # Fusing dictionaries of weights
+    new_dictionary = {}
+    weight_dictionary = torch.load(weight_path)
+    for key, value in weight_dictionary.items():
+        if(not 'head' in key):
+            new_dictionary[key]=value
+    
+    # Getting the model dictionary
+    model_dict = model.state_dict()
+    for key, value in model_dict.items():
+        if (not key in new_dictionary.keys()):
+            new_dictionary[key] = value
 
-    try:
-        train(model=model,
-                config=cfg,
-                epochs=cfg.TRAIN_EPOCHS,
-                device=device)
-    except KeyboardInterrupt:
-        torch.save(model.state_dict(), 'INTERRUPTED.pth')
+    # Loading the dict 
+    model.load_state_dict(new_dictionary)
+    model.to(device=device)
+    
+    # FIRST PHASE
+    # Freeze backbone and neck 
+    print('Freezing backbone and neck layers..')
+    for name, param in model.named_parameters():
+        if(not 'head' in name):
+            param.requires_grad = False
+    
+    cfg.TRAIN_EPOCHS = 1
+    
+    train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=False, save_cp=False)
+
+    # SECOND PHASE
+    print('Unfreezing backbone and neck layers..')
+    for name, param in model.named_parameters():
+        param.requires_grad = True
+
+    cfg.TRAIN_EPOCHS = 1
+
+    train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=False, save_cp=False)
+
+    # THIRD PHASE
+    print('Freezing backbone and neck layers..')
+    for name, param in model.named_parameters():
+        if(not 'head' in name):
+            param.requires_grad = False
+    
+    cfg.TRAIN_EPOCHS = 1
+
+    train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=False, save_cp=False)
+
+    # Saving the weights 
+    save_path = os.path.join(cfg.savings_path, f'{cfg.dataset_name}{cfg.width}.pth')
+    torch.save(model.state_dict(), save_path)

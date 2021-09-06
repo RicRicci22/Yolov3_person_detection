@@ -174,34 +174,18 @@ class Detector:
 if __name__ == '__main__':
     # PYTORCH
     # Creating the model
-    model = Yolov4(yolov4conv137weight=None,n_classes=80,inference=True)
-    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\yolov4.pth')
+    model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
+    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\trained_weights\visdrone608.pth')
     model.activate_gpu()
 
     # # Creating the detector
     yolov4_detector = Detector(model,True,608,608,r'datasets\visdrone\test',keep_aspect_ratio=False)
-    pred = yolov4_detector.detect_in_images(0.1,False,False)
+    pred = yolov4_detector.detect_in_images(0.3,False,True)
 
     meter = Metric(r'datasets\visdrone\test\_annotations.txt',r'datasets\visdrone\test')
     values = meter.frame_metric(pred,0.1)
-    #metriche = meter.precision_recall(pred,0.3)
+
     #precision_list, recall_list, small_prec, small_rec, medium_prec, medium_rec, large_prec, large_rec = meter.calculate_precision_recall_curve(pred,0.5, plot_graph=True)
-    # print('TOTAL')
-    # print('Precision: '+str(metriche[0]))
-    # print('Recall: '+str(metriche[1]))
-    # print('F1: '+str(metriche[2]))
-    # print('\nSmall objects')
-    # print('Precision: '+str(metriche[3]))
-    # print('Recall: '+str(metriche[4]))
-    # print('F1: '+str(metriche[5]))
-    # print('\nMedium objects')
-    # print('Precision: '+str(metriche[6]))
-    # print('Recall: '+str(metriche[7]))
-    # print('F1: '+str(metriche[8]))
-    # print('\nLarge objects')
-    # print('Precision: '+str(metriche[9]))
-    # print('Recall: '+str(metriche[10]))
-    # print('F1: '+str(metriche[11]))
     
     # ap, ar = meter.calc_AP_AR(precision_list,recall_list)
     # aps, ars = meter.calc_AP_AR(small_prec,small_rec)
