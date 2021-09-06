@@ -33,9 +33,10 @@ Tasks completed (05/09/2021):
 
 Tomorrow:
 - [ ] add augmentation strategy of cropping (to use different scales without changing the input resolution)
+- [ ] add augmentation strategy of rotating (+90 -90) can help in lying position
 - [ ] write the section about python and pytorch 
-- [ ] check data augmentation strategy 
-- [ ] write activation functions 
+- [X] check data augmentation strategy 
+- [X] write activation functions 
 
 
 
