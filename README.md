@@ -36,3 +36,10 @@ Tomorrow:
 - [ ] write the section about python and pytorch 
 - [ ] check data augmentation strategy 
 - [ ] write activation functions 
+
+
+
+TESTS TO BE PERFORMED: 
+- ciou test -> fine tune yoov4 using paradigm with and without ciou. Test on visdrone. 
+- anchor box test -> fine tune yolov4 using paradigm with predefined anchors, test on visdrone. Then fine tune with custom anchors, test on visdrone. The same for sard. Test on                        sard and custom. Try to plot graph of bounding box choices 
+- input resolution vs speed test -> fine tune using different input resolutions for every dataset (512 - 608 - 704 - 800 - 896 - 992). Test on dataset. 
