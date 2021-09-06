@@ -48,12 +48,13 @@ Cfg.saturation = 1.5
 Cfg.exposure = 1.5
 Cfg.hue = 0.1
 Cfg.mosaic = True
-Cfg.mixup = False
-Cfg.flip = False
-Cfg.gaussian_noise = False
+Cfg.mixup = True
+Cfg.flip = True
+Cfg.gaussian_noise = True
 Cfg.blur = True
 # Under construction
 Cfg.crop = True 
+Cfg.rotate = True
 
 # Saving variables 
 Cfg.dataset_name = 'visdrone'

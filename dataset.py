@@ -1,23 +1,9 @@
-# -*- coding: utf-8 -*-
-'''
-@Time          : 2020/05/06 21:09
-@Author        : Tianxiaomo
-@File          : dataset.py
-@Noice         :
-@Modificattion :
-    @Author    :
-    @Time      :
-    @Detail    :
-
-'''
 import os
 import random
-from tool.utils import bbox_iou
 
 import cv2
 import numpy as np
 
-import torch
 from torch.utils.data.dataset import Dataset
 import matplotlib.pyplot as plt
 
@@ -45,28 +31,28 @@ def rand_precalc_random(min, max, random_part):
     return (random_part * (max - min)) + min
 
 
-def fill_truth_detection(bboxes, num_boxes, classes, flip, sx, sy, net_w, net_h):
+def fill_truth_detection(bboxes, num_boxes, classes, flip, left_extreme,right_extreme, top_extreme,bottom_extreme, original_width,original_height,net_w, net_h):
     if bboxes.shape[0] == 0:
         return bboxes, 10000
     np.random.shuffle(bboxes)
 
-    bboxes[:, 0] = np.clip(bboxes[:, 0], 0, sx)
-    bboxes[:, 2] = np.clip(bboxes[:, 2], 0, sx)
+    bboxes[:, 0] = np.clip(bboxes[:, 0], left_extreme, right_extreme)
+    bboxes[:, 2] = np.clip(bboxes[:, 2], left_extreme, right_extreme)
 
-    bboxes[:, 1] = np.clip(bboxes[:, 1], 0, sy)
-    bboxes[:, 3] = np.clip(bboxes[:, 3], 0, sy)
+    bboxes[:, 1] = np.clip(bboxes[:, 1], top_extreme, bottom_extreme)
+    bboxes[:, 3] = np.clip(bboxes[:, 3], top_extreme, bottom_extreme)
 
-    out_box = list(np.where(((bboxes[:, 1] == sy) & (bboxes[:, 3] == sy)) |
-                            ((bboxes[:, 0] == sx) & (bboxes[:, 2] == sx)) |
-                            ((bboxes[:, 1] == 0) & (bboxes[:, 3] == 0)) |
-                            ((bboxes[:, 0] == 0) & (bboxes[:, 2] == 0)))[0])
+    out_box = list(np.where(((bboxes[:, 1] == bottom_extreme) & (bboxes[:, 3] == bottom_extreme)) |
+                            ((bboxes[:, 0] == right_extreme) & (bboxes[:, 2] == right_extreme)) |
+                            ((bboxes[:, 1] == top_extreme) & (bboxes[:, 3] == top_extreme)) |
+                            ((bboxes[:, 0] == left_extreme) & (bboxes[:, 2] == left_extreme)))[0])
     list_box = list(range(bboxes.shape[0]))
     for i in out_box:
         list_box.remove(i)
     bboxes = bboxes[list_box]
 
     if bboxes.shape[0] == 0:
-        return bboxes, 10000
+        return bboxes
     
 
     bboxes = bboxes[np.where((bboxes[:, 4] < classes) & (bboxes[:, 4] >= 0))[0]]
@@ -74,13 +60,11 @@ def fill_truth_detection(bboxes, num_boxes, classes, flip, sx, sy, net_w, net_h)
     if bboxes.shape[0] > num_boxes:
         bboxes = bboxes[:num_boxes]
 
-    min_w_h = np.array([bboxes[:, 2] - bboxes[:, 0], bboxes[:, 3] - bboxes[:, 1]]).min()
-
     # Sx is original width, sy is original height
-    bboxes[:, 0] *= (net_w / sx)
-    bboxes[:, 2] *= (net_w / sx)
-    bboxes[:, 1] *= (net_h / sy)
-    bboxes[:, 3] *= (net_h / sy)
+    bboxes[:, 0] *= (net_w / original_width)
+    bboxes[:, 2] *= (net_w / original_width)
+    bboxes[:, 1] *= (net_h / original_height)
+    bboxes[:, 3] *= (net_h / original_height)
 
     if flip==-1:
         temp_width = net_w - bboxes[:, 0]
@@ -98,7 +82,7 @@ def fill_truth_detection(bboxes, num_boxes, classes, flip, sx, sy, net_w, net_h)
         bboxes[:, 1] = net_h - bboxes[:, 3]
         bboxes[:, 3] = temp_height
 
-    return bboxes, min_w_h
+    return bboxes
 
 
 def image_data_augmentation(mat, w, h, flip, dhue, dsat, dexp, gaussian_noise, blur,
@@ -303,6 +287,56 @@ class Yolo_dataset(Dataset):
                 flip = random.randint(-1,1)
             else:
                 flip = -2
+            
+            crop = 0 
+            if(self.cfg.crop and random.randint(0,1)):
+                crop = 1
+                # Crop image 
+                print('Under construction')
+                random_x = 0
+                random_y = 0 
+
+                if(ow>self.cfg.width):
+                    # Can crop on width
+                    possible_x_positions = [int(self.cfg.width/2)+1+i for i in range(0,ow-self.cfg.width-2)]
+                    random_x_index = random.randint(0,len(possible_x_positions))
+                    random_x = possible_x_positions[random_x_index]
+                if(oh>self.cfg.height):
+                    possible_y_positions = [int(self.cfg.height/2)+1+i for i in range(0,ow-self.cfg.height-2)]
+                    random_y_index = random.randint(0,len(possible_y_positions))
+                    random_y = possible_y_positions[random_y_index]
+                
+                if(random_x!=0 and random_y!=0):
+                    # Crop image
+                    new_img = img[random_x-int(self.cfg.width/2):random_x+int(self.cfg.width/2),random_y-int(self.cfg.height/2):random_y+int(self.cfg.height/2)]
+                    img = new_img
+                    oh, ow, _ = img.shape
+                    # Check boxes 
+                    left_extreme = random_x-int(self.cfg.width/2)
+                    right_extreme = random_x+int(self.cfg.width/2)
+                    top_extreme = random_y-int(self.cfg.height/2)
+                    bottom_extreme = random_y+int(self.cfg.height/2)
+                    truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip, left_extreme,right_extreme, top_extreme,bottom_extreme, ow,oh, self.cfg.width, self.cfg.height)
+                
+                elif(random_x==0 and random_y!=0):
+                    new_img = img[random_y-int(self.cfg.height/2):random_y+int(self.cfg.height/2),:]
+                    img = new_img
+                    oh, ow, _ = img.shape
+                    # Check boxes 
+                    top_extreme = random_y-int(self.cfg.height/2)
+                    bottom_extreme = random_y+int(self.cfg.height/2)
+                    truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip, 0,ow, top_extreme,bottom_extreme, ow,oh, self.cfg.width, self.cfg.height)
+                elif(random_x!=0 and random_y==0):
+                    print(random_x)
+                    new_img = img[:,random_x-int(self.cfg.width/2):random_x+int(self.cfg.width/2)]
+                    img = new_img
+                    oh, ow, _ = img.shape
+                    # Check boxes 
+                    left_extreme = random_x-int(self.cfg.width/2)
+                    right_extreme = random_x+int(self.cfg.width/2)
+                    truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip, left_extreme,right_extreme, 0,oh, ow,oh, self.cfg.width, self.cfg.height)
+                
+            oh, ow, _ = img.shape
 
             if (self.cfg.blur):
                 blur = random.randint(0,2)  # 0 - disable, 1 - blur background, 2 - blur the whole image
@@ -314,11 +348,8 @@ class Yolo_dataset(Dataset):
             swidth = ow 
             sheight = oh 
 
-            truth, min_w_h = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip, swidth,
-                                                  sheight, self.cfg.width, self.cfg.height)
-            
-            if (min_w_h / 8) < blur and blur > 1:  # disable blur if one of the objects is too small
-                blur = 0
+            if(not crop):
+                truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip,0, swidth, 0,sheight, ow,oh, self.cfg.width, self.cfg.height)
 
             ai = image_data_augmentation(img, self.cfg.width, self.cfg.height, flip, dhue, dsat, dexp, gaussian_noise, blur, truth)
 

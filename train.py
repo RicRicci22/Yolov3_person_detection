@@ -594,7 +594,7 @@ if __name__ == '__main__':
         if(not 'head' in name):
             param.requires_grad = False
     
-    cfg.TRAIN_EPOCHS = 1
+    cfg.TRAIN_EPOCHS = 10
     
     train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=False, save_cp=False)
 
@@ -603,7 +603,7 @@ if __name__ == '__main__':
     for name, param in model.named_parameters():
         param.requires_grad = True
 
-    cfg.TRAIN_EPOCHS = 1
+    cfg.TRAIN_EPOCHS = 5
 
     train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=False, save_cp=False)
 
@@ -613,7 +613,7 @@ if __name__ == '__main__':
         if(not 'head' in name):
             param.requires_grad = False
     
-    cfg.TRAIN_EPOCHS = 1
+    cfg.TRAIN_EPOCHS = 2
 
     train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=False, save_cp=False)
 

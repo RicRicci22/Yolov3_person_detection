@@ -180,7 +180,7 @@ if __name__ == '__main__':
 
     # # Creating the detector
     yolov4_detector = Detector(model,True,608,608,r'datasets\visdrone\test',keep_aspect_ratio=False)
-    pred = yolov4_detector.detect_in_images(0.3,False,True)
+    pred = yolov4_detector.detect_in_images(0.5,False,True)
 
     meter = Metric(r'datasets\visdrone\test\_annotations.txt',r'datasets\visdrone\test')
     values = meter.frame_metric(pred,0.1)
