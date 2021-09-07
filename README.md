@@ -32,8 +32,8 @@ Tasks completed (05/09/2021):
 - [X] created automatic finetuning method 
 
 Tomorrow:
-- [ ] add augmentation strategy of cropping (to use different scales without changing the input resolution)
-- [ ] add augmentation strategy of rotating (+90 -90) can help in lying position
+- [X] add augmentation strategy of cropping (to use different scales without changing the input resolution)
+- [X] add augmentation strategy of rotating (+90 -90) can help in lying position
 - [ ] write the section about python and pytorch 
 - [X] check data augmentation strategy 
 - [X] write activation functions 
