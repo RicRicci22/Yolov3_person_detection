@@ -1,11 +1,25 @@
 import os
 import random
+import math
 
 import cv2
 import numpy as np
 
 from torch.utils.data.dataset import Dataset
 import matplotlib.pyplot as plt
+
+def rotate_around(origin, point, angle):
+    """
+    Rotate a point counterclockwise by a given angle around a given origin.
+
+    The angle should be given in radians.
+    """
+    ox, oy = origin
+    px, py = point
+
+    qx = ox + math.cos(angle) * (px - ox) - math.sin(angle) * (py - oy)
+    qy = oy + math.sin(angle) * (px - ox) + math.cos(angle) * (py - oy)
+    return qx, qy
 
 
 def rand_uniform_strong(min, max):
@@ -85,8 +99,7 @@ def fill_truth_detection(bboxes, num_boxes, classes, flip, left_extreme,right_ex
     return bboxes
 
 
-def image_data_augmentation(mat, w, h, flip, dhue, dsat, dexp, gaussian_noise, blur,
-                            truth):
+def image_data_augmentation(mat, w, h, flip, dhue, dsat, dexp, gaussian_noise, blur,truth):
     #try:
     img = mat
     #oh, ow, _ = img.shape
@@ -262,7 +275,7 @@ class Yolo_dataset(Dataset):
             cut_x = random.randint(int(self.cfg.width * min_offset), int(self.cfg.width * (1 - min_offset)))
             cut_y = random.randint(int(self.cfg.height * min_offset), int(self.cfg.height * (1 - min_offset)))
 
-        dhue, dsat, dexp, flip, blur = 0, 0, 0, 0, 0
+        dhue, dsat, dexp, flip, blur, rot = 0, 1, 1, 0, 0, -1
         gaussian_noise = 0
 
         out_img = np.zeros([self.cfg.height, self.cfg.width, 3])
@@ -279,20 +292,26 @@ class Yolo_dataset(Dataset):
                 continue
             oh, ow, _ = img.shape
 
-            dhue = rand_uniform_strong(-self.cfg.hue, self.cfg.hue)
-            dsat = rand_scale(self.cfg.saturation)
-            dexp = rand_scale(self.cfg.exposure)
+            if(self.cfg.hue and random.randint(0,1)):
+                dhue = rand_uniform_strong(-0.15, 0.15)
+            if(self.cfg.saturation and random.randint(0,1)):
+                dsat = rand_scale(1.5)
+            if(self.cfg.exposure and random.randint(0,1)):
+                dexp = rand_scale(1.5)
 
             if(self.cfg.flip and random.randint(0,1)):
                 flip = random.randint(-1,1)
             else:
                 flip = -2
             
+            if(self.cfg.rotate and random.randint(0,1)):
+                rot = random.randint(0,1)
+
             crop = 0 
             if(self.cfg.crop and random.randint(0,1)):
                 crop = 1
                 # Crop image 
-                print('Under construction')
+                #print('Under construction')
                 random_x = 0
                 random_y = 0 
 
@@ -302,13 +321,13 @@ class Yolo_dataset(Dataset):
                     random_x_index = random.randint(0,len(possible_x_positions))
                     random_x = possible_x_positions[random_x_index]
                 if(oh>self.cfg.height):
-                    possible_y_positions = [int(self.cfg.height/2)+1+i for i in range(0,ow-self.cfg.height-2)]
+                    possible_y_positions = [int(self.cfg.height/2)+1+i for i in range(0,oh-self.cfg.height-2)]
                     random_y_index = random.randint(0,len(possible_y_positions))
                     random_y = possible_y_positions[random_y_index]
                 
                 if(random_x!=0 and random_y!=0):
                     # Crop image
-                    new_img = img[random_x-int(self.cfg.width/2):random_x+int(self.cfg.width/2),random_y-int(self.cfg.height/2):random_y+int(self.cfg.height/2)]
+                    new_img = img[random_y-int(self.cfg.height/2):random_y+int(self.cfg.height/2),random_x-int(self.cfg.width/2):random_x+int(self.cfg.width/2)]
                     img = new_img
                     oh, ow, _ = img.shape
                     # Check boxes 
@@ -316,8 +335,11 @@ class Yolo_dataset(Dataset):
                     right_extreme = random_x+int(self.cfg.width/2)
                     top_extreme = random_y-int(self.cfg.height/2)
                     bottom_extreme = random_y+int(self.cfg.height/2)
-                    truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip, left_extreme,right_extreme, top_extreme,bottom_extreme, ow,oh, self.cfg.width, self.cfg.height)
-                
+                    truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip, left_extreme, right_extreme, top_extreme,bottom_extreme, ow,oh, self.cfg.width, self.cfg.height)
+                    truth[:,0]-=left_extreme
+                    truth[:,2]-=left_extreme
+                    truth[:,1]-=top_extreme
+                    truth[:,3]-=top_extreme
                 elif(random_x==0 and random_y!=0):
                     new_img = img[random_y-int(self.cfg.height/2):random_y+int(self.cfg.height/2),:]
                     img = new_img
@@ -326,8 +348,9 @@ class Yolo_dataset(Dataset):
                     top_extreme = random_y-int(self.cfg.height/2)
                     bottom_extreme = random_y+int(self.cfg.height/2)
                     truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip, 0,ow, top_extreme,bottom_extreme, ow,oh, self.cfg.width, self.cfg.height)
+                    truth[:,1]-=top_extreme
+                    truth[:,3]-=top_extreme
                 elif(random_x!=0 and random_y==0):
-                    print(random_x)
                     new_img = img[:,random_x-int(self.cfg.width/2):random_x+int(self.cfg.width/2)]
                     img = new_img
                     oh, ow, _ = img.shape
@@ -335,7 +358,30 @@ class Yolo_dataset(Dataset):
                     left_extreme = random_x-int(self.cfg.width/2)
                     right_extreme = random_x+int(self.cfg.width/2)
                     truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip, left_extreme,right_extreme, 0,oh, ow,oh, self.cfg.width, self.cfg.height)
-                
+                    truth[:,0]-=left_extreme
+                    truth[:,2]-=left_extreme
+            
+            swidth = ow 
+            sheight = oh
+
+            if(not crop):
+                truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip,0, swidth, 0,sheight, ow,oh, self.cfg.width, self.cfg.height)
+            
+            if(rot==1):
+                # rotate 90 degrees clockwise
+                img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+                # Boxes
+                origin = (int(img.shape[0]/2),int(img.shape[1]/2))
+                for i in range(truth.shape[0]):
+                    truth[i,:2]=rotate_around(origin,truth[i,:2],-math.pi/2)
+            elif(rot==0):
+                # rotate 90 degrees counterclockwise
+                img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                origin = (int(img.shape[0]/2),int(img.shape[1]/2))
+                for i in range(truth.shape[0]):
+                    truth[i,:2]=rotate_around(origin,truth[i,:2],math.pi/2)
+
+
             oh, ow, _ = img.shape
 
             if (self.cfg.blur):
@@ -344,12 +390,7 @@ class Yolo_dataset(Dataset):
             # Setting gaussian noise 
             if self.cfg.gaussian_noise and random.randint(0, 1):
                 gaussian_noise = random.randint(1,10)/1000
-
-            swidth = ow 
-            sheight = oh 
-
-            if(not crop):
-                truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip,0, swidth, 0,sheight, ow,oh, self.cfg.width, self.cfg.height)
+ 
 
             ai = image_data_augmentation(img, self.cfg.width, self.cfg.height, flip, dhue, dsat, dexp, gaussian_noise, blur, truth)
 

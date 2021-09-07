@@ -44,16 +44,16 @@ Cfg.val_dataset_dir = os.path.join(_BASE_DIR, 'datasets','visdrone','val')
 Cfg.TRAIN_OPTIMIZER = 'adam'
 
 # Data augmentation
-Cfg.saturation = 1.5
-Cfg.exposure = 1.5
-Cfg.hue = 0.1
-Cfg.mosaic = True
-Cfg.mixup = True
-Cfg.flip = True
-Cfg.gaussian_noise = True
-Cfg.blur = True
+Cfg.saturation = False
+Cfg.exposure = False
+Cfg.hue = False
+Cfg.mosaic = False
+Cfg.mixup = False
+Cfg.flip = False
+Cfg.gaussian_noise = False
+Cfg.blur = False
+Cfg.crop = False 
 # Under construction
-Cfg.crop = True 
 Cfg.rotate = True
 
 # Saving variables 
