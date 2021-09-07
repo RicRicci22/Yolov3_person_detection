@@ -23,9 +23,9 @@ Tests:
 
 Finetuning method: 
 - (1) Begin always from the pretrained yolov4 weights. 
-- (2) Freeze backbone and neck and train only the heads for 10 epochs with learning rate 0.001
-- (3) Unfreeze backbone and neck and train on the complete network for 5 epochs with learning rate 0.0005
-- (4) Freeze again neck and backbone and fine tune head for 2 epochs with learning rate 0.0005
+- (2) Freeze backbone and neck and train only the heads for 15 epochs with learning rate 0.001
+- (3) Unfreeze backbone and neck and train on the complete network for 10 epochs with learning rate 0.0005
+- (4) Freeze again neck and backbone and fine tune head for 5 epochs with learning rate 0.0005
 
 Tasks completed (05/09/2021):
 - [X] create another custom dataset, with also negative examples
