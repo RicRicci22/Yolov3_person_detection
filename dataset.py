@@ -1,26 +1,13 @@
+from hashlib import new
 import os
 import random
-import math
+from copy import deepcopy
 
 import cv2
 import numpy as np
 
 from torch.utils.data.dataset import Dataset
 import matplotlib.pyplot as plt
-
-def rotate_around(origin, point, angle):
-    """
-    Rotate a point counterclockwise by a given angle around a given origin.
-
-    The angle should be given in radians.
-    """
-    ox, oy = origin
-    px, py = point
-
-    qx = ox + math.cos(angle) * (px - ox) - math.sin(angle) * (py - oy)
-    qy = oy + math.sin(angle) * (px - ox) + math.cos(angle) * (py - oy)
-    return qx, qy
-
 
 def rand_uniform_strong(min, max):
     if min > max:
@@ -366,23 +353,7 @@ class Yolo_dataset(Dataset):
 
             if(not crop):
                 truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip,0, swidth, 0,sheight, ow,oh, self.cfg.width, self.cfg.height)
-            
-            if(rot==1):
-                # rotate 90 degrees clockwise
-                img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
-                # Boxes
-                origin = (int(img.shape[0]/2),int(img.shape[1]/2))
-                for i in range(truth.shape[0]):
-                    truth[i,:2]=rotate_around(origin,truth[i,:2],-math.pi/2)
-            elif(rot==0):
-                # rotate 90 degrees counterclockwise
-                img = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
-                origin = (int(img.shape[0]/2),int(img.shape[1]/2))
-                for i in range(truth.shape[0]):
-                    truth[i,:2]=rotate_around(origin,truth[i,:2],math.pi/2)
 
-
-            oh, ow, _ = img.shape
 
             if (self.cfg.blur):
                 blur = random.randint(0,2)  # 0 - disable, 1 - blur background, 2 - blur the whole image
@@ -393,6 +364,29 @@ class Yolo_dataset(Dataset):
  
 
             ai = image_data_augmentation(img, self.cfg.width, self.cfg.height, flip, dhue, dsat, dexp, gaussian_noise, blur, truth)
+
+            oh,ow,_ = ai.shape
+
+            if(rot==1):
+                # rotate 90 degrees clockwise
+                new_truth = deepcopy(truth)
+                ai = cv2.rotate(ai, cv2.ROTATE_90_CLOCKWISE)
+                # Boxes
+                new_truth[:,0] = oh-truth[:,3]
+                new_truth[:,1] = truth[:,0]
+                new_truth[:,2] = oh-truth[:,1]
+                new_truth[:,3] = truth[:,2]
+                truth = new_truth
+            elif(rot==0):
+                # rotate 90 degrees counterclockwise
+                new_truth = deepcopy(truth)
+                ai = cv2.rotate(ai, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                # Boxes
+                new_truth[:,0] = truth[:,1]
+                new_truth[:,1] = ow-truth[:,2]
+                new_truth[:,2] = truth[:,3]
+                new_truth[:,3] = ow-truth[:,0]
+                truth = new_truth
 
             if aug_variable == 0:
                 # NOTHING
