@@ -279,42 +279,7 @@ class Metric():
         precision_list.pop()
 
         return average_prec, average_rec
-    
-    def average_map_mar_iou_threshold(self, predictions):
-        map = 0
-        mar = 0 
-        map_small = 0 
-        mar_small = 0
-        map_medium = 0 
-        mar_medium = 0
-        map_large = 0 
-        mar_large = 0
-        list_iou = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.20,0.15,0.10,0.05]
-        for iou in list_iou:
-            lists = self.calculate_precision_recall_curve(predictions,iou,False)
-            values = self.calc_AP_AR(lists[0],lists[1])
-            map+=values[0]
-            mar+=values[1]
-            values = self.calc_AP_AR(lists[2],lists[3])
-            map_small+=values[0]
-            mar_small+=values[1]
-            values = self.calc_AP_AR(lists[4],lists[5])
-            map_medium+=values[0]
-            mar_medium+=values[1]
-            values = self.calc_AP_AR(lists[6],lists[7])
-            map_large+=values[0]
-            mar_large+=values[1]
-        
-        map/=len(list_iou)
-        mar/=len(list_iou)
-        map_small/=len(list_iou)
-        mar_small/=len(list_iou)
-        map_medium/=len(list_iou)
-        mar_medium/=len(list_iou)
-        map_large/=len(list_iou)
-        mar_large/=len(list_iou)
 
-        return map, mar, map_small, mar_small, map_medium, mar_medium, map_large, mar_large
             
     # NEW METRIC IMPLEMENTATION 
     def frame_metric(self, predictions_dict,iou):
