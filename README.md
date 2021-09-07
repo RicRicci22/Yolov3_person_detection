@@ -23,17 +23,17 @@ Tests:
 
 Finetuning method: 
 - (1) Begin always from the pretrained yolov4 weights. 
-- (2) Freeze backbone and neck and train only the heads for 10 epochs with learning rate 0.001
-- (3) Unfreeze backbone and neck and train on the complete network for 5 epochs with learning rate 0.0005
-- (4) Freeze again neck and backbone and fine tune head for 2 epochs with learning rate 0.0005
+- (2) Freeze backbone and neck and train only the heads for 15 epochs with learning rate 0.001
+- (3) Unfreeze backbone and neck and train on the complete network for 10 epochs with learning rate 0.0005
+- (4) Freeze again neck and backbone and fine tune head for 5 epochs with learning rate 0.0005
 
 Tasks completed (05/09/2021):
 - [X] create another custom dataset, with also negative examples
 - [X] created automatic finetuning method 
 
 Tomorrow:
-- [ ] add augmentation strategy of cropping (to use different scales without changing the input resolution)
-- [ ] add augmentation strategy of rotating (+90 -90) can help in lying position
+- [X] add augmentation strategy of cropping (to use different scales without changing the input resolution)
+- [X] add augmentation strategy of rotating (+90 -90) can help in lying position
 - [ ] write the section about python and pytorch 
 - [X] check data augmentation strategy 
 - [X] write activation functions 
@@ -44,6 +44,7 @@ TESTS TO BE PERFORMED:
 - ciou test -> fine tune yoov4 using paradigm with and without ciou. Test on visdrone. 
 - anchor box test -> fine tune yolov4 using paradigm with predefined anchors, test on visdrone. Then fine tune with custom anchors, test on visdrone. The same for sard. Test on                        sard and custom. Try to plot graph of bounding box choices 
 - input resolution vs speed test -> fine tune using different input resolutions for every dataset (512 - 608 - 704 - 800 - 896 - 992). Test on dataset. 
+- augmentation strategies test -> test with or without augmentation.
 
 
 AUGMENTATION STRATEGIES 
