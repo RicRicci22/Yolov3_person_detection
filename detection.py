@@ -94,7 +94,6 @@ class Detector:
         # Create output prediction dictionary
         predictions_dict = {}
         # Starting the loop
-        i=0
         t0 = time.time()
         #print('Detecting in images..')
         for filename in os.listdir(self.testset):
@@ -103,7 +102,6 @@ class Detector:
                 # Is the file an image??
                 if(filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif'))):
                     #print('Processing image '+filename)
-                    i +=1
                     img = cv2.imread(os.path.join(self.testset,filename))
                     original_height, original_width, _ = img.shape
                     if(self.keep_aspect_ratio):
@@ -143,7 +141,7 @@ class Detector:
                     if(output_file):
                         detections.write('\n')
         t1 = time.time()
-        print('FPS = ' + str(i/(t1-t0)))
+        fps = len(predictions_dict.keys())/(t1-t0)
 
         # Visualizing predictions 
         if(visualize_predictions):
@@ -168,7 +166,7 @@ class Detector:
                     cv2.rectangle(image_cv,(left, top), (right, bottom), color, thick)
                 cv2.imwrite('predictions/drawn_'+image, image_cv)
 
-        return predictions_dict
+        return predictions_dict, fps
 
 
 if __name__ == '__main__':
@@ -180,13 +178,23 @@ if __name__ == '__main__':
 
     # # Creating the detector
     yolov4_detector = Detector(model,True,608,608,r'datasets\visdrone\test',keep_aspect_ratio=False)
-    pred = yolov4_detector.detect_in_images(0.5,False,True)
+    pred, fps = yolov4_detector.detect_in_images(0.1,False,False)
 
     meter = Metric(r'datasets\visdrone\test\_annotations.txt',r'datasets\visdrone\test')
-    values = meter.frame_metric(pred,0.1)
-
-    #precision_list, recall_list, small_prec, small_rec, medium_prec, medium_rec, large_prec, large_rec = meter.calculate_precision_recall_curve(pred,0.5, plot_graph=True)
+    values = meter.precision_recall(pred,0.1)
+    print('SPEED ',fps,' fps')
+    print('Total precision: ',values[0])
+    print('Total recall: ',values[1])
+    print('Total f1: ',values[2])
+    print('Small precision: ',values[3])
+    print('Small recall: ',values[4])
+    print('Small f1: ',values[5])
     
+    # confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.20,0.15,0.10,0.05]
+    # precision_list, recall_list, small_prec, small_rec, medium_prec, medium_rec, large_prec, large_rec = meter.calculate_precision_recall_f1_curve(pred,confidence_steps,0.2, plot_graph=True)
+    # print(precision_list)
+    # print(recall_list)
+    # print(small_prec)
     # ap, ar = meter.calc_AP_AR(precision_list,recall_list)
     # aps, ars = meter.calc_AP_AR(small_prec,small_rec)
     # apm, arm = meter.calc_AP_AR(medium_prec,medium_rec)

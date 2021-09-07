@@ -95,6 +95,9 @@ class Metric():
         medium_g_truth = 0 
         large_g_truth = 0 
         tot_pred = 0
+        small_pred = 0 
+        medium_pred = 0 
+        large_pred = 0
         f1 = 0 
         f1_small = 0
         f1_medium = 0 
@@ -112,54 +115,76 @@ class Metric():
             tot_g_truth += len(self.ground_truth[key])
 
         for key in predictions_dict.keys():
+            for box in predictions_dict[key]:
+                area = (box[3]-box[1])*(box[2]-box[0])
+                if(area<256):
+                    small_pred+=1
+                elif(area>1200):
+                    large_pred+=1
+                else:
+                    medium_pred+=1
+            tot_g_truth += len(self.ground_truth[key])
             tot_pred += len(predictions_dict[key])
 
 
-        # Calculate total precision and recall
+        # Total precision
         if(tot_pred!=0):
             precision = true_positive/tot_pred
         else:
             precision = 0
-        # DOES IT HAVE SENSE??
-        if(small_positive+medium_positive+large_positive!=0):
-            small_precision = precision*(small_positive/(small_positive+medium_positive+large_positive))
-            medium_precision = precision*(medium_positive/(small_positive+medium_positive+large_positive))
-            large_precision = precision*(large_positive/(small_positive+medium_positive+large_positive))
-            # For ground truth this results in the recall value!    
+        # Small precision
+        if(small_pred):
+            small_precision = small_positive/small_pred
         else:
-            small_precision = 0
+            small_precision = 0 
+        # Medium precision
+        if(medium_pred):
+            medium_precision = medium_positive/medium_pred
+        else:
             medium_precision = 0
-            large_precision = 0
-        
+        # Large precision
+        if(large_pred):
+            large_precision = large_positive/large_pred
+        else:
+            large_precision = 0 
+        # Total recall
         if(tot_g_truth!=0):
             recall = true_positive/tot_g_truth
         else:
             recall = 0
-
+        # Small recall
         if(small_g_truth!=0):
             small_recall = small_positive/small_g_truth
         else:
             small_recall = 0
-
+        # Medium recall
         if(medium_g_truth!=0):
             medium_recall = medium_positive/medium_g_truth
         else:
             medium_recall = 0
-
+        # Large recall
         if(large_g_truth!=0):
             large_recall = large_positive/large_g_truth
         else:
             large_recall = 0
-
+        # Total f1
         if(precision+recall!=0):
             f1 = (2*precision*recall)/(precision+recall)
-        
+        # Small f1
         if(small_precision+small_recall!=0):
             f1_small = (2*small_precision*small_recall)/(small_precision+small_recall)
+        else:
+            f1_small = 0 
+        # Medium f1
         if(medium_precision+medium_recall!=0):
             f1_medium = (2*medium_precision*medium_recall)/(medium_precision+medium_recall)
+        else:
+            f1_medium = 0 
+        # Large f1
         if(large_precision+large_recall!=0):
             f1_large = (2*large_precision*large_recall)/(large_precision+large_recall)
+        else:
+            f1_large = 0
 
         return [precision, recall, f1, small_precision, small_recall, f1_small, medium_precision, medium_recall, f1_medium, large_precision, large_recall, f1_large]
 

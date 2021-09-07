@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt
 
 
 # This module is meant to systematically process tests on dataset
+
+
 # RESOLUTION TEST
 # This test is meant to inspect how the input resolution influeces the detection performance
-# TEST 1
-# Parameters:
 # Pretrained_weights
 resolutions = [416,512,608,704,800,896,992,1088]
 anno_path = r'datasets\visdrone\test\_annotations.txt'
@@ -24,6 +24,7 @@ metrica = Metric(anno_path,dataset_path)
 file = open(r'tests\input_resolution\visdrone\pretrained\no_keep_aspect_ratio\test.txt','w')
 iou_list = [0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]
 confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.20,0.15,0.10,0.05]
+
 for resolution in resolutions:
     average_prec_list = []
     average_rec_list = []
@@ -34,6 +35,7 @@ for resolution in resolutions:
     predictions_dict = yolov4_detector.detect_in_images(0.01,False,False)
     precision_matrix = np.zeros((len(iou_list),len(confidence_steps)))
     recall_matrix = np.zeros((len(iou_list),len(confidence_steps)))
+    f1_matrix = np.zeros((len(iou_list),len(confidence_steps)))
     for index_iou in range(len(iou_list)):
         print('Calculating for iou threshold '+str(iou_list[index_iou]))
         values = metrica.calculate_precision_recall_f1_curve(predictions_dict,confidence_steps,iou_list[index_iou],plot_graph=False)
@@ -46,6 +48,7 @@ for resolution in resolutions:
         # Insert in precision and recall matrices 
         precision_matrix[index_iou,:] = values[0]
         recall_matrix[index_iou,:] = values[1]
+        f1_matrix[index_iou,:] = values[2]
         #plt.plot(values[1],values[0],label='IoU '+str(iou))
         file.write('Average precision: '+str(np.around(average_prec,2))+'\n')
         file.write('Average recall: '+str(np.around(average_rec,2))+'\n\n')
@@ -73,7 +76,7 @@ for resolution in resolutions:
 
     fig2 = plt.figure(figsize=(10,5))
     ax2 = fig2.subplots()
-    ax2.matshow(recall_matrix, cmap=plt.cm.Blues)
+    ax2.matshow(recall_matrix, cmap=plt.cm.Reds)
     # Displaying text
     for i in range(recall_matrix.shape[0]):
         for j in range(recall_matrix.shape[1]):
@@ -90,6 +93,26 @@ for resolution in resolutions:
     fig2.tight_layout()
     # Save figure
     plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone\pretrained\no_keep_aspect_ratio","recall_at_"+str(resolution)+"x"+str(resolution)))
+
+    fig5 = plt.figure(figsize=(10,5))
+    ax5 = fig5.subplots()
+    ax5.matshow(f1_matrix, cmap=plt.cm.Greens)
+    # Displaying text
+    for i in range(f1_matrix.shape[0]):
+        for j in range(f1_matrix.shape[1]):
+            c = f1_matrix[i,j]
+            ax5.text(j, i, str(np.around(c,2)), va='center', ha='center')
+    ax5.set_xticks(np.arange(len(confidence_steps)))
+    ax5.set_yticks(np.arange(len(iou_list)))
+    ax5.set_xticklabels(confidence_steps)
+    ax5.set_yticklabels(iou_list)
+    ax5.set_xlabel('Confidences threshold in prediction')
+    ax5.set_ylabel('IoU threshold for detection')
+    ax5.set_title('F1 VALUES for different parameters settings')
+    ax5.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
+    fig5.tight_layout()
+    # Save figure
+    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone\pretrained\no_keep_aspect_ratio","f1_at_"+str(resolution)+"x"+str(resolution)))
 
     fig3 = plt.figure(figsize=(5,5))
     ax3 = fig3.subplots()

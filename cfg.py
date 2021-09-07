@@ -53,8 +53,8 @@ Cfg.flip = False
 Cfg.gaussian_noise = False
 Cfg.blur = False
 Cfg.crop = True 
-# Under construction
 Cfg.rotate = True
+
 
 # Saving variables 
 Cfg.dataset_name = 'visdrone'
