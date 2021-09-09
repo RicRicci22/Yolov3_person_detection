@@ -1,3 +1,4 @@
+from numpy.lib.function_base import average
 from detection import Detector
 from metrics import Metric
 from models import Yolov4
@@ -13,13 +14,6 @@ model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\yolov4.pth')
 model.activate_gpu()
 # Creating element to measure metrics
 metrica = Metric(anno_path,dataset_path)
-# Creating file to store results
-file = open(r'tests\input_resolution\visdrone\pretrained\no_keep_aspect_ratio\test.txt','w')
-iou_list = [0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]
-confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.20,0.15,0.10,0.05]
-
-mean_average_prec_list = []
-mean_average_rec_list = []
 
 # Preparing graphs  
 # Average prec vs iou 
@@ -28,17 +22,35 @@ ax = fig.subplots()
 # Average rec vs iou 
 fig2 = plt.figure(figsize=(10,5))
 ax2 = fig2.subplots()
+# Small
+# fig5 = plt.figure(figsize=(10,5))
+# ax5 = fig5.subplots()
 
-# Mean average prec vs resolution 
-fig3 = plt.figure(figsize=(10,5))
-ax3 = fig3.subplots()
-# Mean average rec vs resolution 
-fig4 = plt.figure(figsize=(10,5))
-ax4 = fig4.subplots()
+fig6 = plt.figure(figsize=(10,5))
+ax6 = fig6.subplots()
+# Medium
+# fig7 = plt.figure(figsize=(10,5))
+# ax7 = fig7.subplots()
+
+fig8 = plt.figure(figsize=(10,5))
+ax8 = fig8.subplots()
+# Large
+# fig9 = plt.figure(figsize=(10,5))
+# ax9 = fig9.subplots()
+
+fig10 = plt.figure(figsize=(10,5))
+ax10 = fig10.subplots()
+
+iou_list = [0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]
+confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.20,0.15,0.10,0.05]
 
 for resolution in resolutions:
     average_prec_list = []
     average_rec_list = []
+    mean_f1_list = []
+    small_mean_rec_list = []
+    medium_mean_rec_list = []
+    large_mean_rec_list = []
     print('Calculating for resolution '+str(resolution)+'x'+str(resolution))
     # Creating the detector
     yolov4_detector = Detector(model,True,resolution,resolution,dataset_path,keep_aspect_ratio=False)
@@ -47,49 +59,82 @@ for resolution in resolutions:
     print(fps)
     for index_iou in range(len(iou_list)):
         print('Calculating for iou threshold '+str(iou_list[index_iou]))
-        values = metrica.calculate_precision_recall_f1_curve(predictions_dict,confidence_steps,iou_list[index_iou],plot_graph=False)
+        values = metrica.calculate_precision_recall_f1_lists(predictions_dict,confidence_steps,iou_list[index_iou],plot_graph=False)
         average_prec, average_rec = metrica.calc_AP_AR(values[0],values[1])
-        average_prec_list.append(average_prec)
-        average_rec_list.append(average_rec)
-    mean_average_prec_list.append(sum(average_prec_list)/len(average_prec_list))
-    mean_average_rec_list.append(sum(average_rec_list)/len(average_rec_list))
+
+        average_prec_list.append(np.round(average_prec,3))
+        average_rec_list.append(np.round(average_rec,3))
+        # mean of f1 scores for different confidences, and current iou
+        mean_f1_list.append(np.mean(values[2]))
+
+        small_mean_rec_list.append(np.mean(values[3]))
+
+        medium_mean_rec_list.append(np.mean(values[4]))
+
+        large_mean_rec_list.append(np.mean(values[5]))
+    
+    print(average_prec_list)
+    print(average_rec_list)
 
     # Plotting the average vs iou lists
     ax.plot(range(len(iou_list)),average_prec_list,label=str(resolution)+'x'+str(resolution))
     ax2.plot(range(len(iou_list)),average_rec_list,label=str(resolution)+'x'+str(resolution))
+    # Small
+    
+    ax6.plot(range(len(iou_list)),small_mean_rec_list,label=str(resolution)+'x'+str(resolution))
+    # Medium 
+    
+    ax8.plot(range(len(iou_list)),medium_mean_rec_list,label=str(resolution)+'x'+str(resolution))
+    # Large
+    
+    ax10.plot(range(len(iou_list)),large_mean_rec_list,label=str(resolution)+'x'+str(resolution))
 
-# Plotting the mean average vs resolution list
-ax3.plot(range(len(resolutions)),mean_average_prec_list)
-ax4.plot(range(len(resolutions)),mean_average_rec_list)
 
-
+# TOTAL 
+ax.set_xticks(np.arange(len(iou_list)))
 ax.set_xticklabels(iou_list)
 ax.set_xlabel('IoU threshold for detection')
 ax.set_ylabel('Average precision')
-ax.set_title('AVERAGE PRECISION VS IOU')
 ax.legend()
 fig.tight_layout()
 
+ax2.set_xticks(np.arange(len(iou_list)))
 ax2.set_xticklabels(iou_list)
 ax2.set_xlabel('IoU threshold for detection')
 ax2.set_ylabel('Average recall')
-ax2.set_title('AVERAGE RECALL VS IOU')
 ax2.legend()
 fig2.tight_layout()
 
-ax3.set_xticklabels(resolutions)
-ax3.set_xlabel('Input resolution')
-ax3.set_ylabel('Mean average precision over IoU threshold')
-ax3.set_title('MEAN AVERAGE PRECISION VS RESOLUTION')
-ax3.legend()
-fig3.tight_layout()
+# Small 
 
-ax4.set_xticklabels(iou_list)
-ax4.set_xlabel('Input resolution')
-ax4.set_ylabel('Mean average recall over IoU threshold')
-ax4.set_title('AVERAGE RECALL VS RESOLUTION')
-ax4.legend()
-fig4.tight_layout()
+ax6.set_xticks(np.arange(len(iou_list)))
+ax6.set_xticklabels(iou_list)
+ax6.set_title('Small objects')
+ax6.set_xlabel('IoU threshold for detection')
+ax6.set_ylabel('Mean of recall values over confidence thresholds')
+ax6.legend()
+fig6.tight_layout()
+
+# Medium
+
+ax8.set_xticks(np.arange(len(iou_list)))
+ax8.set_xticklabels(iou_list)
+ax8.set_title('Medium objects')
+ax8.set_xlabel('IoU threshold for detection')
+ax8.set_ylabel('Mean of recall values over confidence thresholds')
+ax8.legend()
+fig8.tight_layout()
+
+# Large
+
+ax10.set_xticks(np.arange(len(iou_list)))
+ax10.set_xticklabels(iou_list)
+ax10.set_title('Large objects')
+ax10.set_xlabel('IoU threshold for detection')
+ax10.set_ylabel('Mean of recall values over confidence thresholds')
+ax10.legend()
+fig10.tight_layout()
+
 
 
 plt.show()

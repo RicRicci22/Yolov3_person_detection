@@ -52,8 +52,8 @@ Cfg.mixup = False
 Cfg.flip = False
 Cfg.gaussian_noise = False
 Cfg.blur = False
-Cfg.crop = True 
-Cfg.rotate = True
+Cfg.crop = False 
+Cfg.rotate = False
 
 
 # Saving variables 

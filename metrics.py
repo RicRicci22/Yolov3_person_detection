@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os 
 from copy import deepcopy
+import cv2
 # This file will contain some functions to perform metrics on a dataset
 # It will work on sard and visdrone datasets to be more precise.
 
@@ -24,6 +25,13 @@ class Metric():
                     coords = bbox.split(',')
                     ground_truth_dict[pieces[0]].append([int(coords[0]),int(coords[1]),int(coords[2]),int(coords[3]),int(coords[4]),1])
         self.ground_truth = ground_truth_dict
+        # Loading resolution dictionary
+        resolution_dict = {}
+        for key in self.ground_truth.keys():
+            path = os.path.join(dataset_directory,key)
+            temp_img = cv2.imread(path)
+            resolution_dict[key] = (temp_img.shape)
+        self.resolution = resolution_dict
 
     def __str__(self):
         print('Metric object')
@@ -55,10 +63,26 @@ class Metric():
         small_positive = 0
         medium_positive = 0 
         large_positive = 0
+
+        tot_g_truth = 0
+        small_g_truth = 0 
+        medium_g_truth = 0 
+        large_g_truth = 0 
+        tot_pred = 0
         # Create a copy of the ground truth to iterate 
         copy_gt_truth = deepcopy(self.ground_truth)
         # Calculating true positive
         for key in self.ground_truth.keys():
+            resolution = self.resolution[key]
+            for box in self.ground_truth[key]:
+                area = (box[3]-box[1])*(box[2]-box[0])
+                if(area<0.001*resolution[0]*resolution[1]):
+                    small_g_truth+=1
+                elif(area>0.01*resolution[0]*resolution[1]):
+                    large_g_truth+=1
+                else:
+                    medium_g_truth+=1
+            tot_g_truth += len(self.ground_truth[key])
             if(key in predictions_dict.keys()):
                 # Creating matrix of ious
                 matrix = np.zeros((len(self.ground_truth[key]),len(predictions_dict[key])))
@@ -68,8 +92,8 @@ class Metric():
                     for j in range(len(predictions_dict[key])):
                         matrix[i,j]=self.evaluate_IoU(self.ground_truth[key][i],predictions_dict[key][j])
                 # iterating on the max
-                while(np.amax(matrix)>iou_threshold):
-                    max_value = np.amax(matrix)
+                max_value = np.amax(matrix)
+                while(max_value>iou_threshold):
                     max_indices = np.where(matrix == max_value)
                     true_positive+=1
                     # Check if the truth is small, medium large 
@@ -77,9 +101,9 @@ class Metric():
                     # Remove bbox from ground truth
                     del copy_gt_truth[key][max_indices[0][0]]
                     area = (box[3]-box[1])*(box[2]-box[0])
-                    if(area<256):
+                    if(area<0.001*resolution[0]*resolution[1]):
                         small_positive+=1
-                    elif(area>1200):
+                    elif(area>0.01*resolution[0]*resolution[1]):
                         large_positive+=1
                     else:
                         medium_positive+=1
@@ -88,65 +112,19 @@ class Metric():
                     matrix = np.delete(matrix,max_indices[1][0],1)
                     if(matrix.shape[0]==0 or matrix.shape[1]==0):
                         break
-    
-        # Calculate total number of ground truth boxes and total number of predictions
-        tot_g_truth = 0
-        small_g_truth = 0 
-        medium_g_truth = 0 
-        large_g_truth = 0 
-        tot_pred = 0
-        small_pred = 0 
-        medium_pred = 0 
-        large_pred = 0
-        f1 = 0 
-        f1_small = 0
-        f1_medium = 0 
-        f1_large = 0 
-
-        for key in self.ground_truth.keys():
-            for box in self.ground_truth[key]:
-                area = (box[3]-box[1])*(box[2]-box[0])
-                if(area<256):
-                    small_g_truth+=1
-                elif(area>1200):
-                    large_g_truth+=1
-                else:
-                    medium_g_truth+=1
-            tot_g_truth += len(self.ground_truth[key])
-
+                    # Updating max value
+                    max_value = np.amax(matrix)
+        
+        # Calculate total predictions    
         for key in predictions_dict.keys():
-            for box in predictions_dict[key]:
-                area = (box[3]-box[1])*(box[2]-box[0])
-                if(area<256):
-                    small_pred+=1
-                elif(area>1200):
-                    large_pred+=1
-                else:
-                    medium_pred+=1
-            tot_g_truth += len(self.ground_truth[key])
             tot_pred += len(predictions_dict[key])
-
 
         # Total precision
         if(tot_pred!=0):
             precision = true_positive/tot_pred
         else:
             precision = 0
-        # Small precision
-        if(small_pred):
-            small_precision = small_positive/small_pred
-        else:
-            small_precision = 0 
-        # Medium precision
-        if(medium_pred):
-            medium_precision = medium_positive/medium_pred
-        else:
-            medium_precision = 0
-        # Large precision
-        if(large_pred):
-            large_precision = large_positive/large_pred
-        else:
-            large_precision = 0 
+        
         # Total recall
         if(tot_g_truth!=0):
             recall = true_positive/tot_g_truth
@@ -170,25 +148,12 @@ class Metric():
         # Total f1
         if(precision+recall!=0):
             f1 = (2*precision*recall)/(precision+recall)
-        # Small f1
-        if(small_precision+small_recall!=0):
-            f1_small = (2*small_precision*small_recall)/(small_precision+small_recall)
         else:
-            f1_small = 0 
-        # Medium f1
-        if(medium_precision+medium_recall!=0):
-            f1_medium = (2*medium_precision*medium_recall)/(medium_precision+medium_recall)
-        else:
-            f1_medium = 0 
-        # Large f1
-        if(large_precision+large_recall!=0):
-            f1_large = (2*large_precision*large_recall)/(large_precision+large_recall)
-        else:
-            f1_large = 0
+            f1 = 0 
 
-        return [precision, recall, f1, small_precision, small_recall, f1_small, medium_precision, medium_recall, f1_medium, large_precision, large_recall, f1_large]
+        return [precision, recall, f1, small_recall, medium_recall, large_recall]
 
-    def calculate_precision_recall_f1_curve(self, predictions_dict, confidence_steps, iou_threshold, plot_graph=True):
+    def calculate_precision_recall_f1_lists(self, predictions_dict, confidence_steps, iou_threshold, plot_graph=True):
         # Function that plots precision recall values for different confidences to create a curve
         # INPUT
         # predictions_list = a list of predictions for a set of images (at low confidence, for example 0.01)
@@ -196,12 +161,10 @@ class Metric():
         precision_list = []
         recall_list = []
         f1_list = []
-        prec_list_small = []
         rec_list_small = []
-        prec_list_medium = []
         rec_list_medium = []
-        prec_list_large = []
         rec_list_large = []
+
         list_of_predictions = []
         # Ordering the predictions by confidence in a list
         for key, value in predictions_dict.items():
@@ -222,14 +185,11 @@ class Metric():
             recall_list.append(metr_values[1])
             f1_list.append(metr_values[2])
             
-            prec_list_small.append(metr_values[3])
-            rec_list_small.append(metr_values[4])
+            rec_list_small.append(metr_values[3])
             
-            prec_list_medium.append(metr_values[6])
-            rec_list_medium.append(metr_values[7])
+            rec_list_medium.append(metr_values[4])
             
-            prec_list_large.append(metr_values[9])
-            rec_list_large.append(metr_values[10])
+            rec_list_large.append(metr_values[5])
         
         if(plot_graph):
             plt.figure()
@@ -237,28 +197,10 @@ class Metric():
             plt.title('Precision-Recall Curve')
             plt.xlabel('Recall')
             plt.ylabel('Precision')
-            # Small objects 
-            plt.figure()
-            plt.plot(rec_list_small,prec_list_small)
-            plt.title('Precision-Recall Curve --- Small objects')
-            plt.xlabel('Recall')
-            plt.ylabel('Precision')
-            # Medium objects 
-            plt.figure()
-            plt.plot(rec_list_medium,prec_list_medium)
-            plt.title('Precision-Recall Curve --- Medium objects')
-            plt.xlabel('Recall')
-            plt.ylabel('Precision')
-            # Large objects 
-            plt.figure()
-            plt.plot(rec_list_large,prec_list_large)
-            plt.title('Precision-Recall Curve --- Large objects')
-            plt.xlabel('Recall')
-            plt.ylabel('Precision')
             
             plt.show()
 
-        return precision_list, recall_list, f1_list, prec_list_small, rec_list_small, prec_list_medium, rec_list_medium, prec_list_large, rec_list_large
+        return precision_list, recall_list, f1_list, rec_list_small, rec_list_medium, rec_list_large
 
     def calc_AP_AR(self,precision_list, recall_list):
         # Function to calculate the average precision

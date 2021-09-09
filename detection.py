@@ -32,59 +32,59 @@ class Detector:
         return 'Cuda acceleration?: '+str(self.use_cuda)
 
 
-    # def process_all_videos(self, video_folder, confidence):
-    #     import os
-    #     import fnmatch
+    def process_all_videos(self, video_folder, confidence):
+        import os
+        import fnmatch
 
-    #     # Enter the folder with the two videos and get only .mp4 files
-    #     videos = fnmatch.filter(os.listdir(video_folder), '*.mp4')
-    #     i=0
-    #     for video in videos:
-    #         i=i+1
-    #         print('Processing video',i,'out of',len(videos))
-    #         cap = cv2.VideoCapture(video_folder + '/' + video)
-    #         # Get info on video
-    #         fps = cap.get(cv2.CAP_PROP_FPS)
-    #         frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        # Enter the folder with the two videos and get only .mp4 files
+        videos = fnmatch.filter(os.listdir(video_folder), '*.mp4')
+        i=0
+        for video in videos:
+            i=i+1
+            print('Processing video',i,'out of',len(videos))
+            cap = cv2.VideoCapture(video_folder + '/' + video)
+            # Get info on video3
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    #         cap.set(3, 1280)
-    #         cap.set(4, 720)
-    #         print("Starting the YOLO loop...")
-    #         print(m.width)
-    #         print(m.height)
-    #         # Loading class names
-    #         class_names = load_class_names(self.namesfile)
-    #         # Object to save the video
-    #         width= int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    #         height= int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            print("Starting the YOLO loop...")
 
-    #         writer= cv2.VideoWriter(video_folder+'/result '+video, 0x00000021, fps, (width,height))
-    #         n_frame = 1
-    #         start = time.time()
-    #         while (n_frame<=frame_count):
-    #             print('Processing frame',n_frame,'out of',frame_count)
-    #             ret, img = cap.read()
-    #             sized = cv2.resize(img, (m.width, m.height))
-    #             sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
+            width= int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height= int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            rgb = (0,0,255)
+            writer= cv2.VideoWriter(video_folder+'/result '+video, 0x00000021, fps, (width,height))
+            n_frame = 1
+            while (n_frame<=frame_count):
+                print('Processing frame',n_frame,'out of',frame_count)
+                _, img = cap.read()
+                sized = cv2.resize(img, (self.input_width, self.input_height))
+                sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
 
-    #             #start = time.time()
-    #             boxes = do_detect(self.model, sized, confidence, self.num_classes, 0.4, self.use_cuda)
-    #             #finish = time.time()
-    #             #print('Predicted in %f seconds.' % (finish - start))
+                boxes = do_detect(self.model, sized, confidence, 0.4, self.use_cuda)
+                new_boxes = [box for box in boxes[0] if box[5]==0]
+                for box in new_boxes:
+                    x1 = int(box[0]*width)
+                    y1 = int(box[1]*height)
+                    x2 = int(box[2]*width)
+                    y2 = int(box[3]*height)
+                    # check if negative
+                    if(x1<0):
+                        x1=0
+                    if(y1<0):
+                        y1=0
+                    if(x2>width):
+                        x2=width
+                    if(y2>height):
+                        y2=height
+                    img = cv2.rectangle(img, (x1, y1), (x2, y2), rgb, 3)
+               
+                #result_img = plot_boxes_cv2(img, boxes, savename=None, class_names=class_names)
 
-    #             result_img = plot_boxes_cv2(img, boxes, savename=None, class_names=class_names)
-
-    #             # cv2.imshow('Yolo demo', result_img)
-    #             writer.write(result_img)
-    #             cv2.waitKey(1)
-    #             n_frame=n_frame+1
-    #         finish = time.time()
-    #         # Printing average FPS in a txt file inside the folder
-    #         f = open(video_folder+"/average_FPS.txt", "a")
-    #         f.write(video+'-->'+str(round(frame_count/(finish-start),1))+'FPS\n')
-    #         f.close
-    #         cap.release()
-    #         writer.release()
+                writer.write(img)
+                cv2.waitKey(1)
+                n_frame=n_frame+1
+            cap.release()
+            writer.release()
 
     def detect_in_images(self, confidence, output_file=False, visualize_predictions=False):
         # Perform prediction using yolov4 pytorch implementation
@@ -172,25 +172,19 @@ class Detector:
 if __name__ == '__main__':
     # PYTORCH
     # Creating the model
-    model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
-    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\trained_weights\visdrone608.pth')
+    model = Yolov4(yolov4conv137weight=None,n_classes=80,inference=True)
+    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\yolov4.pth')
     model.activate_gpu()
 
-    # # Creating the detector
+    # Creating the detector
     yolov4_detector = Detector(model,True,608,608,r'datasets\visdrone\test',keep_aspect_ratio=False)
-    pred, fps = yolov4_detector.detect_in_images(0.1,False,False)
-
-    meter = Metric(r'datasets\visdrone\test\_annotations.txt',r'datasets\visdrone\test')
-    values = meter.precision_recall(pred,0.1)
-    print('SPEED ',fps,' fps')
-    print('Total precision: ',values[0])
-    print('Total recall: ',values[1])
-    print('Total f1: ',values[2])
-    print('Small precision: ',values[3])
-    print('Small recall: ',values[4])
-    print('Small f1: ',values[5])
+    yolov4_detector.process_all_videos(r'C:\Users\Melgani\Desktop\master_degree\Video material',0.3)
+    # #pred, fps = yolov4_detector.detect_in_images(0.01,False,False)
+    # print('Creating dict')
+    # meter = Metric(r'datasets\visdrone\test\_annotations.txt',r'datasets\visdrone\test')
+    #confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.20,0.15,0.10,0.05]
+    #values = meter.calculate_precision_recall_f1_curve(pred,confidence_steps,0.3,plot_graph=True)
     
-    # confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.20,0.15,0.10,0.05]
     # precision_list, recall_list, small_prec, small_rec, medium_prec, medium_rec, large_prec, large_rec = meter.calculate_precision_recall_f1_curve(pred,confidence_steps,0.2, plot_graph=True)
     # print(precision_list)
     # print(recall_list)

@@ -240,7 +240,7 @@ class Yolo_loss(nn.Module):
             # calculate iou between truth and reference anchors
             #print(truth_box)
             #print(self.ref_anchors[output_id])
-            anchor_ious_all = bboxes_iou(truth_box.cpu(), self.ref_anchors[output_id], CIoU=True) # shape n_truth_box, n_anchor_boxes
+            anchor_ious_all = bboxes_iou(truth_box, self.ref_anchors[output_id], CIoU=True) # shape n_truth_box, n_anchor_boxes
             #print(anchor_ious_all)
 
             best_n_all = anchor_ious_all.argmax(dim=1) # shape n_truth_box
