@@ -13,6 +13,7 @@
 import logging
 import os
 from collections import deque
+from cv2 import sort
 
 from tqdm import tqdm
 import numpy as np
@@ -29,6 +30,7 @@ from models import Yolov4
 from detection import Detector
 from metrics import Metric
 import matplotlib.pyplot as plt 
+
 
 
 # def bboxes_iou(bboxes_a, bboxes_b, xyxy=True):
@@ -170,10 +172,11 @@ class Yolo_loss(nn.Module):
         self.n_classes = n_classes
         self.n_anchors = n_anchors
 
-        self.anchors = [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]]
+        #self.anchors = [[12, 16], [19, 36], [40, 28], [36, 75], [76, 55], [72, 146], [142, 110], [192, 243], [459, 401]]
         #self.anch_masks = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
         self.anch_masks= [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
-        #self.anchors= [[7, 11], [12, 21], [16, 32], [22, 36], [33, 47], [37, 67], [48, 73], [81, 100], [94, 196]]
+        #self.anchors= [[7, 11], [12, 21], [16, 32], [22, 35], [33, 48], [36, 67], [48, 77], [79, 100], [94, 168]] # VISDRONE ANCHORS
+        self.anchors = [[8,16], [12,18], [20,20], [22,48], [36,75], [36,36], [97,125], [151,160], [290,170]] # SARD ANCHORS
         self.ignore_thre = 0.5
 
         self.masked_anchors, self.ref_anchors, self.grid_x, self.grid_y, self.anchor_w, self.anchor_h = [], [], [], [], [], []
@@ -227,6 +230,8 @@ class Yolo_loss(nn.Module):
         truth_j_all = truth_y_all.to(torch.int16).cpu().numpy()
         #print(labels)
         #print(truth_i_all)
+        # TO DELETE
+        activations = []
 
         for b in range(batchsize):
             n = int(nlabel[b])
@@ -245,11 +250,19 @@ class Yolo_loss(nn.Module):
             #print(self.ref_anchors[output_id])
             anchor_ious_all = bboxes_iou(truth_box.cpu(), self.ref_anchors[output_id], CIoU=True) # shape n_truth_box, n_anchor_boxes
             #print(anchor_ious_all)
-
+            #print(anchor_ious_all)
+            #print('self ref anchors shape ',self.ref_anchors[output_id].shape)
+            #print('Truth shape: ',truth_box.shape)
             best_n_all = anchor_ious_all.argmax(dim=1) # shape n_truth_box
+            #print(best_n_all.shape,'\n')
+            #print(best_n_all)
+            for value in best_n_all:
+                activations.append(value.numpy())
+            #print(best_n_all)
             #print(anchor_ious_all)
             #print('Best n all:',best_n_all)
             best_n_mask = ((best_n_all == self.anch_masks[output_id][0]) | (best_n_all == self.anch_masks[output_id][1]) | (best_n_all == self.anch_masks[output_id][2]))
+            #print(best_n_mask)
             # Best n mask is true or false 
             #print(self.anch_masks[output_id][0])
             #print(best_n_mask)
@@ -306,7 +319,7 @@ class Yolo_loss(nn.Module):
                     ##############################
                     tgt_scale[b, a, j, i, :] = torch.sqrt(2 - truth_w_all[b, ti] * truth_h_all[b, ti] / fsize / fsize)
 
-        return obj_mask, tgt_mask, tgt_scale, target
+        return obj_mask, tgt_mask, tgt_scale, target, activations
 
     def forward(self, xin, labels=None):
         loss, loss_xy, loss_wh, loss_obj, loss_cls = 0, 0, 0, 0, 0
@@ -323,14 +336,14 @@ class Yolo_loss(nn.Module):
             # logistic activation for xy, obj, cls
             output[..., np.r_[:2, 4:n_ch]] = torch.sigmoid(output[..., np.r_[:2, 4:n_ch]])
 
-
             pred = output[..., :4].clone()
             pred[..., 0] += self.grid_x[output_id] # add the grid
             pred[..., 1] += self.grid_y[output_id] # add the grid
             pred[..., 2] = torch.exp(pred[..., 2]) * self.anchor_w[output_id] # to make non negative!
             pred[..., 3] = torch.exp(pred[..., 3]) * self.anchor_h[output_id] # to make non negative!
 
-            obj_mask, tgt_mask, tgt_scale, target = self.build_target(pred, labels, batchsize, fsize, n_ch, output_id)
+            obj_mask, tgt_mask, tgt_scale, target, activations = self.build_target(pred, labels, batchsize, fsize, n_ch, output_id)
+            
             # loss calculation
             output[..., 4] *= obj_mask
             output[..., np.r_[0:4, 5:n_ch]] *= tgt_mask
@@ -348,7 +361,7 @@ class Yolo_loss(nn.Module):
 
         loss = loss_xy + loss_wh + loss_obj + loss_cls
 
-        return loss, loss_xy, loss_wh, loss_obj, loss_cls
+        return loss, loss_xy, loss_wh, loss_obj, loss_cls, activations
 
 
 def collate(batch):
@@ -459,7 +472,11 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=200, calc_loss
 
                 bboxes_pred = model(images) # shape [num_resolutions, batch_size, (5+n_ch)*num_boxes, grid, grid]
 
-                loss, loss_xy, loss_wh, loss_obj, loss_cls = criterion(bboxes_pred, bboxes)
+                loss, loss_xy, loss_wh, loss_obj, loss_cls, activations = criterion(bboxes_pred, bboxes)
+                activations = [*(x for x in activations)]
+                for a in activations:
+                    a = int(a)
+                    total_activations.append(a)
                 # loss = loss / config.subdivisions
                 loss.backward()
 

@@ -18,7 +18,7 @@ from sklearn.cluster import KMeans
 import numpy as np
 import matplotlib.pyplot as plt
 
-annotations_path = r'C:\Users\Riccardo\Desktop\TESI MAGISTRALE\Code\VISDRONE\visDrone_pedestrian_people_all_bboxes\train\train\_annotations.txt'
+annotations_path = r'C:\Users\Melgani\Desktop\master_degree\datasets\sard\train\_annotations.txt'
 areas = []
 ratios = []
 widths = []
@@ -54,10 +54,10 @@ for ind in range (9):
 yolo_anchor_average=np.array(yolo_anchor_average)
 
 plt.scatter(x[:, 0], x[:, 1], c=y_kmeans3, s=2, cmap='viridis')
-plt.scatter(yolo_anchor_average[:, 0], yolo_anchor_average[:, 1], c='red', s=50);
+plt.scatter(yolo_anchor_average[:, 0], yolo_anchor_average[:, 1], c='red', s=50)
 yoloV3anchors = yolo_anchor_average
-yoloV3anchors[:, 0] =yolo_anchor_average[:, 0] /1280 *608
-yoloV3anchors[:, 1] =yolo_anchor_average[:, 1] /720 *608
+yoloV3anchors[:, 0] =yolo_anchor_average[:, 0] 
+yoloV3anchors[:, 1] =yolo_anchor_average[:, 1]
 yoloV3anchors = np.rint(yoloV3anchors)
 fig, ax = plt.subplots()
 for ind in range(9):

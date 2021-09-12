@@ -111,7 +111,7 @@ class Detector:
                         sized = cv2.resize(img, (self.input_width, self.input_height))
                         sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
                     # perform detection
-                    boxes = do_detect(self.model, sized, confidence, 0.4, self.use_cuda,print_time=False)
+                    boxes = do_detect(self.model, sized, confidence, 0.2, self.use_cuda,print_time=False)
                     # Process boxes to keep only people (boxes[0]) cause in detection batch = 1!!!!
                     new_boxes = [box for box in boxes[0] if box[5]==0]
                     if(output_file):
@@ -172,8 +172,8 @@ class Detector:
 if __name__ == '__main__':
     # PYTORCH
     # Creating the model
-    model = Yolov4(yolov4conv137weight=None,n_classes=80,inference=True)
-    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\yolov4.pth')
+    model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
+    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\checkpoints\Yolov4_epoch1.pth')
     model.activate_gpu()
 
     # Creating the detector
