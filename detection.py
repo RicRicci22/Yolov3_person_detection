@@ -111,7 +111,7 @@ class Detector:
                         sized = cv2.resize(img, (self.input_width, self.input_height))
                         sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
                     # perform detection
-                    boxes = do_detect(self.model, sized, confidence, 0.4, self.use_cuda,print_time=False)
+                    boxes = do_detect(self.model, sized, confidence, 0.2, self.use_cuda,print_time=False)
                     # Process boxes to keep only people (boxes[0]) cause in detection batch = 1!!!!
                     new_boxes = [box for box in boxes[0] if box[5]==0]
                     if(output_file):
@@ -172,14 +172,14 @@ class Detector:
 if __name__ == '__main__':
     # PYTORCH
     # Creating the model
-    model = Yolov4(yolov4conv137weight=None,n_classes=80,inference=True)
-    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\yolov4.pth')
+    model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
+    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\checkpoints\Yolov4_epoch1.pth')
     model.activate_gpu()
 
     # Creating the detector
-    yolov4_detector = Detector(model,True,608,608,r'datasets\visdrone\test',keep_aspect_ratio=False)
-    yolov4_detector.process_all_videos(r'C:\Users\Melgani\Desktop\master_degree\Video material',0.3)
-    # #pred, fps = yolov4_detector.detect_in_images(0.01,False,False)
+    yolov4_detector = Detector(model,True,608,608,r'datasets\custom\test',keep_aspect_ratio=False)
+    #yolov4_detector.process_all_videos(r'C:\Users\Melgani\Desktop\master_degree\Video material',0.3)
+    pred, fps = yolov4_detector.detect_in_images(0.2,False,True)
     # print('Creating dict')
     # meter = Metric(r'datasets\visdrone\test\_annotations.txt',r'datasets\visdrone\test')
     #confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.20,0.15,0.10,0.05]

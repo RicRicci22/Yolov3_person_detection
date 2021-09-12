@@ -6,8 +6,8 @@ from tool.utils import *
 import matplotlib.pyplot as plt
 
 resolutions = [416,512,608,704,800,896,992,1088]
-anno_path = r'datasets\visdrone\test\_annotations.txt'
-dataset_path = r'datasets\visdrone\test'
+anno_path = r'datasets\custom\test\_annotations.txt'
+dataset_path = r'datasets\custom\test'
 # Creating the model
 model = Yolov4(yolov4conv137weight=None,n_classes=80,inference=True)
 model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\yolov4.pth')

@@ -37,10 +37,10 @@ Cfg.policy = Cfg.steps
 Cfg.scales = .1, .1
 Cfg.boxes = 150  # box num
 Cfg.TRAIN_EPOCHS = 10
-Cfg.train_label = os.path.join(_BASE_DIR, 'datasets','visdrone','train','_annotations.txt')
-Cfg.val_label = os.path.join(_BASE_DIR, 'datasets','visdrone','val','_annotations.txt')
-Cfg.train_dataset_dir = os.path.join(_BASE_DIR, 'datasets','visdrone','train')
-Cfg.val_dataset_dir = os.path.join(_BASE_DIR, 'datasets','visdrone','val')
+Cfg.train_label = os.path.join(_BASE_DIR, 'datasets','sard','train','_annotations.txt')
+Cfg.val_label = os.path.join(_BASE_DIR, 'datasets','sard','val','_annotations.txt')
+Cfg.train_dataset_dir = os.path.join(_BASE_DIR, 'datasets','sard','train')
+Cfg.val_dataset_dir = os.path.join(_BASE_DIR, 'datasets','sard','val')
 Cfg.TRAIN_OPTIMIZER = 'adam'
 
 # Data augmentation
@@ -57,7 +57,7 @@ Cfg.rotate = False
 
 
 # Saving variables 
-Cfg.dataset_name = 'visdrone'
+Cfg.dataset_name = 'sard'
 Cfg.savings_path = os.path.join(_BASE_DIR, 'trained_weights')
 
 
