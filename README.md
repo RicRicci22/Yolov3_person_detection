@@ -15,7 +15,6 @@ Next steps:
 
 Tests:
 - [ ] customizing anchor boxes 
-- [ ] adding a detection layer if needed 
 - [ ] adding input size variation during training (see if it helps) -> changed with cropping during data aug.
 - [ ] adding data augmentation
 - [ ] train keeping aspect ratio 
@@ -31,17 +30,22 @@ Tasks completed (05/09/2021):
 - [X] create another custom dataset, with also negative examples
 - [X] created automatic finetuning method 
 
-Tomorrow:
+Tasks completed (07/09/2021):
 - [X] add augmentation strategy of cropping (to use different scales without changing the input resolution)
 - [X] add augmentation strategy of rotating (+90 -90) can help in lying position
-- [ ] write the section about python and pytorch 
+- [X] write the section about python and pytorch 
 - [X] check data augmentation strategy 
 - [X] write activation functions 
 
+Tomorrow:
+- [X] print anchor box activation during training.
+- [X] correct the small medium large calculation by reffering to percentage over the image 
+- [X] finish benchmarks
+- [X] calculate target size number on trainsets
 
 
 TESTS TO BE PERFORMED: 
-- ciou test -> fine tune yoov4 using paradigm with and without ciou. Test on visdrone. 
+- ciou test -> fine tune yolov4 using paradigm with and without ciou. Test on visdrone. 
 - anchor box test -> fine tune yolov4 using paradigm with predefined anchors, test on visdrone. Then fine tune with custom anchors, test on visdrone. The same for sard. Test on                        sard and custom. Try to plot graph of bounding box choices 
 - input resolution vs speed test -> fine tune using different input resolutions for every dataset (512 - 608 - 704 - 800 - 896 - 992). Test on dataset. 
 - augmentation strategies test -> test with or without augmentation.
