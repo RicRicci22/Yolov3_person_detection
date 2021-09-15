@@ -431,6 +431,7 @@ class Yolov4(nn.Module):
         if yolov4conv137weight:
             pretrained_dict = torch.load(yolov4conv137weight)
             model_dict = self.state_dict()
+            # Does not work! 
             model_dict.update(pretrained_dict)
             self.load_state_dict(model_dict)
         

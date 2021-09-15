@@ -6,8 +6,8 @@ from tool.utils import *
 import matplotlib.pyplot as plt
 
 resolutions = [416,512,608,704,800,896,992,1088]
-anno_path = r'datasets\visdrone\test\_annotations.txt'
-dataset_path = r'datasets\visdrone\test'
+anno_path = r'datasets\custom\test\_annotations.txt'
+dataset_path = r'datasets\custom\test'
 # Creating the model
 model = Yolov4(yolov4conv137weight=None,n_classes=80,inference=True)
 model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\yolov4.pth')
@@ -60,10 +60,10 @@ for resolution in resolutions:
     for index_iou in range(len(iou_list)):
         print('Calculating for iou threshold '+str(iou_list[index_iou]))
         values = metrica.calculate_precision_recall_f1_lists(predictions_dict,confidence_steps,iou_list[index_iou],plot_graph=False)
-        average_prec, average_rec = metrica.calc_AP_AR(values[0],values[1])
+        average_prec = metrica.calc_AP(values[0],values[1])
 
         average_prec_list.append(np.round(average_prec,3))
-        average_rec_list.append(np.round(average_rec,3))
+        average_rec_list.append(np.round(np.mean(values[1]),3))
         # mean of f1 scores for different confidences, and current iou
         mean_f1_list.append(np.mean(values[2]))
 
@@ -73,8 +73,8 @@ for resolution in resolutions:
 
         large_mean_rec_list.append(np.mean(values[5]))
     
-    print(average_prec_list)
-    print(average_rec_list)
+    #print(average_prec_list)
+    #print(average_rec_list)
 
     # Plotting the average vs iou lists
     ax.plot(range(len(iou_list)),average_prec_list,label=str(resolution)+'x'+str(resolution))
@@ -93,6 +93,7 @@ for resolution in resolutions:
 # TOTAL 
 ax.set_xticks(np.arange(len(iou_list)))
 ax.set_xticklabels(iou_list)
+ax.set_title('Average precision vs IoU')
 ax.set_xlabel('IoU threshold for detection')
 ax.set_ylabel('Average precision')
 ax.legend()
@@ -100,6 +101,7 @@ fig.tight_layout()
 
 ax2.set_xticks(np.arange(len(iou_list)))
 ax2.set_xticklabels(iou_list)
+ax2.set_title('Average recall vs IoU')
 ax2.set_xlabel('IoU threshold for detection')
 ax2.set_ylabel('Average recall')
 ax2.legend()
@@ -109,9 +111,9 @@ fig2.tight_layout()
 
 ax6.set_xticks(np.arange(len(iou_list)))
 ax6.set_xticklabels(iou_list)
-ax6.set_title('Small objects')
+ax6.set_title('Average recall -- Small objects')
 ax6.set_xlabel('IoU threshold for detection')
-ax6.set_ylabel('Mean of recall values over confidence thresholds')
+ax6.set_ylabel('Average recall')
 ax6.legend()
 fig6.tight_layout()
 
@@ -119,9 +121,9 @@ fig6.tight_layout()
 
 ax8.set_xticks(np.arange(len(iou_list)))
 ax8.set_xticklabels(iou_list)
-ax8.set_title('Medium objects')
+ax8.set_title('Average recall -- Medium objects')
 ax8.set_xlabel('IoU threshold for detection')
-ax8.set_ylabel('Mean of recall values over confidence thresholds')
+ax8.set_ylabel('Average recall')
 ax8.legend()
 fig8.tight_layout()
 
@@ -129,9 +131,9 @@ fig8.tight_layout()
 
 ax10.set_xticks(np.arange(len(iou_list)))
 ax10.set_xticklabels(iou_list)
-ax10.set_title('Large objects')
+ax10.set_title('Average recall -- Large objects')
 ax10.set_xlabel('IoU threshold for detection')
-ax10.set_ylabel('Mean of recall values over confidence thresholds')
+ax10.set_ylabel('Average recall')
 ax10.legend()
 fig10.tight_layout()
 

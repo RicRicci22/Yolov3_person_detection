@@ -27,7 +27,7 @@ Cfg.subdivisions = 1
 Cfg.width = 608
 Cfg.height = 608
 Cfg.channels = 3
-Cfg.learning_rate = 0.001
+Cfg.learning_rate = 0.0005
 Cfg.momentum = 0.949
 Cfg.decay = 0.0005
 Cfg.burn_in = 1000
@@ -36,28 +36,31 @@ Cfg.steps = [400000, 450000]
 Cfg.policy = Cfg.steps
 Cfg.scales = .1, .1
 Cfg.boxes = 150  # box num
-Cfg.TRAIN_EPOCHS = 10
+Cfg.TRAIN_EPOCHS = 1
 Cfg.train_label = os.path.join(_BASE_DIR, 'datasets','visdrone','train','_annotations.txt')
 Cfg.val_label = os.path.join(_BASE_DIR, 'datasets','visdrone','val','_annotations.txt')
 Cfg.train_dataset_dir = os.path.join(_BASE_DIR, 'datasets','visdrone','train')
 Cfg.val_dataset_dir = os.path.join(_BASE_DIR, 'datasets','visdrone','val')
 Cfg.TRAIN_OPTIMIZER = 'adam'
 
+Cfg.custom_val_dir = os.path.join(_BASE_DIR, 'datasets','custom','val')
+Cfg.custom_val_label = os.path.join(_BASE_DIR, 'datasets','custom','val','_annotations.txt')
+
 # Data augmentation
-Cfg.saturation = False
-Cfg.exposure = False
-Cfg.hue = False
-Cfg.mosaic = False
+Cfg.saturation = True
+Cfg.exposure = True
+Cfg.hue = True
+Cfg.mosaic = True
 Cfg.mixup = False
-Cfg.flip = False
-Cfg.gaussian_noise = False
+Cfg.flip = True
+Cfg.gaussian_noise = True
 Cfg.blur = False
-Cfg.crop = False 
-Cfg.rotate = False
+Cfg.crop = True 
+Cfg.rotate = True
 
 
 # Saving variables 
-Cfg.dataset_name = 'visdrone'
+Cfg.dataset_name = 'sard'
 Cfg.savings_path = os.path.join(_BASE_DIR, 'trained_weights')
 
 

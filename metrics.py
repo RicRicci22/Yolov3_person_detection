@@ -124,7 +124,6 @@ class Metric():
             precision = true_positive/tot_pred
         else:
             precision = 0
-        
         # Total recall
         if(tot_g_truth!=0):
             recall = true_positive/tot_g_truth
@@ -153,7 +152,7 @@ class Metric():
 
         return [precision, recall, f1, small_recall, medium_recall, large_recall]
 
-    def calculate_precision_recall_f1_lists(self, predictions_dict, confidence_steps, iou_threshold, plot_graph=True):
+    def calculate_precision_recall_f1_lists(self, predictions_dict, confidence_steps, iou_threshold, plot_graph=False):
         # Function that plots precision recall values for different confidences to create a curve
         # INPUT
         # predictions_list = a list of predictions for a set of images (at low confidence, for example 0.01)
@@ -173,6 +172,7 @@ class Metric():
         ordered_list_prediction = sorted(list_of_predictions, key=lambda x: x[2],reverse=True)
         # Creating new prediction dict, inserting one bbox at a time
         for confidence_step in confidence_steps:
+            # print(confidence_step)
             new_pred_dict = {}
             for bbox in ordered_list_prediction:
                 if(bbox[0] in new_pred_dict and bbox[2]>confidence_step):
@@ -202,25 +202,27 @@ class Metric():
 
         return precision_list, recall_list, f1_list, rec_list_small, rec_list_medium, rec_list_large
 
-    def calc_AP_AR(self,precision_list, recall_list):
+    def calc_AP(self,precision_list, recall_list):
         # Function to calculate the average precision
         # INPUT
         # precision_list = a list of floating precision values
         # recall_list = a list of floating recall values
         # OUTPUT
         # average_precision = floating value
+        # This are pessimistic interpolated AP AND AR
         average_prec = 0
-        average_rec = 0
+        # First element 
+        precision_list.append(0)
+        recall_list.insert(0,0)
         recall_list.append(1)
         for index in range(len(precision_list)):
             average_prec+=(recall_list[index+1]-recall_list[index])*precision_list[index]
-        recall_list.pop()
-        precision_list.append(0)
-        for index in range(len(recall_list)):
-            average_rec+=(precision_list[index]-precision_list[index+1])*recall_list[index]
-        precision_list.pop()
 
-        return average_prec, average_rec
+        return average_prec
+    
+    def calc_AR(self, recall_list):
+        # Calculate average recall as the average of recalls for different confidences 
+        return np.mean(recall_list)
 
             
     # NEW METRIC IMPLEMENTATION 

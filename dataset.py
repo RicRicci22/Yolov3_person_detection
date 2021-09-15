@@ -305,11 +305,11 @@ class Yolo_dataset(Dataset):
                 if(ow>self.cfg.width):
                     # Can crop on width
                     possible_x_positions = [int(self.cfg.width/2)+1+i for i in range(0,ow-self.cfg.width-2)]
-                    random_x_index = random.randint(0,len(possible_x_positions))
+                    random_x_index = random.randint(0,len(possible_x_positions)-1)
                     random_x = possible_x_positions[random_x_index]
                 if(oh>self.cfg.height):
                     possible_y_positions = [int(self.cfg.height/2)+1+i for i in range(0,oh-self.cfg.height-2)]
-                    random_y_index = random.randint(0,len(possible_y_positions))
+                    random_y_index = random.randint(0,len(possible_y_positions)-1)
                     random_y = possible_y_positions[random_y_index]
                 
                 if(random_x!=0 and random_y!=0):

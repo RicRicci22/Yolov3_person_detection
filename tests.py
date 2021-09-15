@@ -21,7 +21,7 @@ model.activate_gpu()
 # Creating element to measure metrics
 metrica = Metric(anno_path,dataset_path)
 # Creating file to store results
-file = open(r'tests\input_resolution\visdrone\pretrained\no_keep_aspect_ratio\test.txt','w')
+file = open(r'tests\input_resolution\visdrone\test.txt','w')
 iou_list = [0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]
 confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.20,0.15,0.10,0.05]
 
@@ -32,13 +32,13 @@ for resolution in resolutions:
     # Creating the detector
     yolov4_detector = Detector(model,True,resolution,resolution,dataset_path,keep_aspect_ratio=False)
     # Get the predictions with a low confidence 
-    predictions_dict = yolov4_detector.detect_in_images(0.01,False,False)
+    predictions_dict,fps = yolov4_detector.detect_in_images(0.01,False,False)
     precision_matrix = np.zeros((len(iou_list),len(confidence_steps)))
     recall_matrix = np.zeros((len(iou_list),len(confidence_steps)))
     f1_matrix = np.zeros((len(iou_list),len(confidence_steps)))
     for index_iou in range(len(iou_list)):
         print('Calculating for iou threshold '+str(iou_list[index_iou]))
-        values = metrica.calculate_precision_recall_f1_curve(predictions_dict,confidence_steps,iou_list[index_iou],plot_graph=False)
+        values = metrica.calculate_precision_recall_f1_lists(predictions_dict,confidence_steps,iou_list[index_iou],plot_graph=False)
         # Calculating average precision and recall
         file.write(str(resolution)+'x'+str(resolution)+'\n')
         file.write('Iou threshold for true positive: '+str(iou_list[index_iou])+'\n')
@@ -71,7 +71,7 @@ for resolution in resolutions:
     ax.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
     fig.tight_layout()
     # Save figure
-    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone\pretrained\no_keep_aspect_ratio","precision_at_"+str(resolution)+"x"+str(resolution)))
+    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone","precision_at_"+str(resolution)+"x"+str(resolution)))
 
 
     fig2 = plt.figure(figsize=(10,5))
@@ -92,7 +92,7 @@ for resolution in resolutions:
     ax2.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
     fig2.tight_layout()
     # Save figure
-    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone\pretrained\no_keep_aspect_ratio","recall_at_"+str(resolution)+"x"+str(resolution)))
+    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone","recall_at_"+str(resolution)+"x"+str(resolution)))
 
     fig5 = plt.figure(figsize=(10,5))
     ax5 = fig5.subplots()
@@ -112,7 +112,7 @@ for resolution in resolutions:
     ax5.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
     fig5.tight_layout()
     # Save figure
-    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone\pretrained\no_keep_aspect_ratio","f1_at_"+str(resolution)+"x"+str(resolution)))
+    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone","f1_at_"+str(resolution)+"x"+str(resolution)))
 
     fig3 = plt.figure(figsize=(5,5))
     ax3 = fig3.subplots()
@@ -124,7 +124,7 @@ for resolution in resolutions:
     ax3.set_title('AVERAGE PRECISION VS IOU')
     fig3.tight_layout()
     # Save figure
-    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone\pretrained\no_keep_aspect_ratio","average_precision_at_"+str(resolution)+"x"+str(resolution)))
+    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone","average_precision_at_"+str(resolution)+"x"+str(resolution)))
 
     fig4= plt.figure(figsize=(5,5))
     ax4 = fig4.subplots()
@@ -136,7 +136,7 @@ for resolution in resolutions:
     ax4.set_title('AVERAGE RECALL VS IOU')
     fig4.tight_layout()
     # Save figure
-    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone\pretrained\no_keep_aspect_ratio","average_recall_at_"+str(resolution)+"x"+str(resolution)))
+    plt.savefig(os.path.join(r"C:\Users\Melgani\Desktop\master_degree\tests\input_resolution\visdrone","average_recall_at_"+str(resolution)+"x"+str(resolution)))
 
     plt.close('all')
 
