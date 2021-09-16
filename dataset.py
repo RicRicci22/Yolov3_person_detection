@@ -32,7 +32,7 @@ def rand_precalc_random(min, max, random_part):
     return (random_part * (max - min)) + min
 
 
-def fill_truth_detection(bboxes, num_boxes, classes, flip, left_extreme,right_extreme, top_extreme,bottom_extreme, original_width,original_height,net_w, net_h):
+def fill_truth_detection(bboxes, num_boxes, classes, left_extreme,right_extreme, top_extreme,bottom_extreme, original_width,original_height,net_w, net_h):
     if bboxes.shape[0] == 0:
         return bboxes, 10000
     np.random.shuffle(bboxes)
@@ -66,22 +66,6 @@ def fill_truth_detection(bboxes, num_boxes, classes, flip, left_extreme,right_ex
     bboxes[:, 2] *= (net_w / original_width)
     bboxes[:, 1] *= (net_h / original_height)
     bboxes[:, 3] *= (net_h / original_height)
-
-    if flip==-1:
-        temp_width = net_w - bboxes[:, 0]
-        temp_height = net_h - bboxes[:, 1]
-        bboxes[:, 0] = net_w - bboxes[:, 2]
-        bboxes[:, 1] = net_h - bboxes[:, 3]
-        bboxes[:, 2] = temp_width
-        bboxes[:, 3] = temp_height
-    elif flip==1:
-        temp_width = net_w - bboxes[:, 0]
-        bboxes[:, 0] = net_w - bboxes[:, 2]
-        bboxes[:, 2] = temp_width
-    elif(flip==0):
-        temp_height = net_h - bboxes[:, 1]
-        bboxes[:, 1] = net_h - bboxes[:, 3]
-        bboxes[:, 3] = temp_height
 
     return bboxes
 
@@ -298,7 +282,6 @@ class Yolo_dataset(Dataset):
             if(self.cfg.crop and random.randint(0,1)):
                 crop = 1
                 # Crop image 
-                #print('Under construction')
                 random_x = 0
                 random_y = 0 
 
@@ -322,7 +305,7 @@ class Yolo_dataset(Dataset):
                     right_extreme = random_x+int(self.cfg.width/2)
                     top_extreme = random_y-int(self.cfg.height/2)
                     bottom_extreme = random_y+int(self.cfg.height/2)
-                    truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip, left_extreme, right_extreme, top_extreme,bottom_extreme, ow,oh, self.cfg.width, self.cfg.height)
+                    truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, left_extreme, right_extreme, top_extreme,bottom_extreme, ow,oh, self.cfg.width, self.cfg.height)
                     truth[:,0]-=left_extreme
                     truth[:,2]-=left_extreme
                     truth[:,1]-=top_extreme
@@ -334,7 +317,7 @@ class Yolo_dataset(Dataset):
                     # Check boxes 
                     top_extreme = random_y-int(self.cfg.height/2)
                     bottom_extreme = random_y+int(self.cfg.height/2)
-                    truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip, 0,ow, top_extreme,bottom_extreme, ow,oh, self.cfg.width, self.cfg.height)
+                    truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, 0,ow, top_extreme,bottom_extreme, ow,oh, self.cfg.width, self.cfg.height)
                     truth[:,1]-=top_extreme
                     truth[:,3]-=top_extreme
                 elif(random_x!=0 and random_y==0):
@@ -344,15 +327,34 @@ class Yolo_dataset(Dataset):
                     # Check boxes 
                     left_extreme = random_x-int(self.cfg.width/2)
                     right_extreme = random_x+int(self.cfg.width/2)
-                    truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip, left_extreme,right_extreme, 0,oh, ow,oh, self.cfg.width, self.cfg.height)
+                    truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, left_extreme,right_extreme, 0,oh, ow,oh, self.cfg.width, self.cfg.height)
                     truth[:,0]-=left_extreme
                     truth[:,2]-=left_extreme
+                #print(truth)
+        
             
             swidth = ow 
             sheight = oh
 
             if(not crop):
-                truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, flip,0, swidth, 0,sheight, ow,oh, self.cfg.width, self.cfg.height)
+                truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes,0, swidth, 0,sheight, ow,oh, self.cfg.width, self.cfg.height)
+            
+            # FLIPPING 
+            if flip==-1:
+                temp_width = self.cfg.width - truth[:, 0]
+                temp_height = self.cfg.height - truth[:, 1]
+                truth[:, 0] = self.cfg.width - truth[:, 2]
+                truth[:, 1] = self.cfg.height - truth[:, 3]
+                truth[:, 2] = temp_width
+                truth[:, 3] = temp_height
+            elif flip==1:
+                temp_width = self.cfg.width - truth[:, 0]
+                truth[:, 0] = self.cfg.width - truth[:, 2]
+                truth[:, 2] = temp_width
+            elif(flip==0):
+                temp_height = self.cfg.height - truth[:, 1]
+                truth[:, 1] = self.cfg.height - truth[:, 3]
+                truth[:, 3] = temp_height
 
 
             if (self.cfg.blur):
@@ -408,6 +410,7 @@ class Yolo_dataset(Dataset):
                 
         if aug_variable == 3:
             out_bboxes = np.concatenate(out_bboxes, axis=0)
+
         out_bboxes1 = np.zeros([self.cfg.boxes, 5])
         out_bboxes1[:min(out_bboxes.shape[0], self.cfg.boxes)] = out_bboxes[:min(out_bboxes.shape[0], self.cfg.boxes)]
         return out_img, out_bboxes1

@@ -330,9 +330,9 @@ class Yolov4Head(nn.Module):
 
         self.yolo1 = YoloLayer(
                                 #anchor_mask=[0, 1, 2], num_classes=n_classes,
-                                #anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
+                                anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401], # ORIGINAL ANCHORS
                                 anchor_mask=[0, 1, 2], num_classes=n_classes,
-                                anchors=[7, 11, 12, 21, 16, 32, 22, 35, 33, 48, 36, 67, 48, 71, 79, 100, 94, 168], #VISDRONE ANCHORS
+                                #anchors=[7, 11, 12, 21, 16, 32, 22, 35, 33, 48, 36, 67, 48, 71, 79, 100, 94, 168], #VISDRONE ANCHORS
                                 #anchors = [8,16,12,18,20,20,22,48,36,75,36,36,97,125,151,160,290,170], # SARD ANCHORS
                                 num_anchors=9, stride=8)
 
@@ -350,9 +350,9 @@ class Yolov4Head(nn.Module):
         
         self.yolo2 = YoloLayer(
                                 #anchor_mask=[3, 4, 5], num_classes=n_classes,
-                                #anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
+                                anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401], # ORIGINAL ANCHORS
                                 anchor_mask=[3, 4, 5], num_classes=n_classes,
-                                anchors=[7, 11, 12, 21, 16, 32, 22, 35, 33, 48, 36, 67, 48, 71, 79, 100, 94, 168], #VISDRONE ANCHORS 
+                                #anchors=[7, 11, 12, 21, 16, 32, 22, 35, 33, 48, 36, 67, 48, 71, 79, 100, 94, 168], #VISDRONE ANCHORS 
                                 #anchors = [8,16,12,18,20,20,22,48,36,75,36,36,97,125,151,160,290,170], # SARD ANCHORS
                                 num_anchors=9, stride=16)
 
@@ -370,9 +370,9 @@ class Yolov4Head(nn.Module):
         
         self.yolo3 = YoloLayer(
                                 #anchor_mask=[6, 7, 8], num_classes=n_classes,
-                                #anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
+                                anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
                                 anchor_mask=[6, 7, 8], num_classes=n_classes,
-                                anchors=[7, 11, 12, 21, 16, 32, 22, 35, 33, 48, 36, 67, 48, 71, 79, 100, 94, 168], #VISDRONE ANCHORS 
+                                #anchors=[7, 11, 12, 21, 16, 32, 22, 35, 33, 48, 36, 67, 48, 71, 79, 100, 94, 168], #VISDRONE ANCHORS 
                                 #anchors = [8,16,12,18,20,20,22,48,36,75,36,36,97,125,151,160,290,170], # SARD ANCHORS
                                 num_anchors=9, stride=32)
 
