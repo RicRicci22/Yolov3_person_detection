@@ -316,7 +316,7 @@ class Yolo_loss(nn.Module):
                     ##############################
                     tgt_scale[b, a, j, i, :] = torch.sqrt(2 - truth_w_all[b, ti] * truth_h_all[b, ti] / fsize / fsize)
 
-        return obj_mask, tgt_mask, tgt_scale, target
+        return obj_mask, tgt_mask, tgt_scale, target, activations
 
     def forward(self, xin, labels=None):
         loss, loss_xy, loss_wh, loss_obj, loss_cls = 0, 0, 0, 0, 0
@@ -358,7 +358,7 @@ class Yolo_loss(nn.Module):
 
         loss = loss_xy + loss_wh + loss_obj + loss_cls
 
-        return loss, loss_xy, loss_wh, loss_obj, loss_cls
+        return loss, loss_xy, loss_wh, loss_obj, loss_cls, activations
 
 
 def collate(batch):
@@ -452,7 +452,11 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=200, calc_loss
 
                 bboxes_pred = model(images) # shape [num_resolutions, batch_size, (5+n_ch)*num_boxes, grid, grid]
 
-                loss, loss_xy, loss_wh, loss_obj, loss_cls = criterion(bboxes_pred, bboxes)
+                loss, loss_xy, loss_wh, loss_obj, loss_cls, activations = criterion(bboxes_pred, bboxes)
+                activations = [*(x for x in activations)]
+                for a in activations:
+                    a = int(a)
+                    total_activations.append(a)
                 # loss = loss / config.subdivisions
                 loss.backward()
 
