@@ -614,9 +614,9 @@ if __name__ == '__main__':
         param.requires_grad = True
     
     Cfg.learning_rate = 0.0005
-    cfg.TRAIN_EPOCHS = 20
+    cfg.TRAIN_EPOCHS = 40
 
-    train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=False,evaluate_averages=True)
+    train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True,evaluate_averages=True)
 
     # THIRD PHASE
     print('Freezing backbone and neck layers..')
@@ -627,7 +627,7 @@ if __name__ == '__main__':
     Cfg.learning_rate = 0.0005
     cfg.TRAIN_EPOCHS = 5
 
-    train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=False, evaluate_averages=True)
+    train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True, evaluate_averages=True)
 
     # Saving the weights 
     save_path = os.path.join(cfg.savings_path, f'{cfg.dataset_name}{cfg.width}.pth')

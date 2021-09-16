@@ -60,7 +60,7 @@ Cfg.rotate = True
 
 
 # Saving variables 
-Cfg.dataset_name = 'sard'
+Cfg.dataset_name = 'custom'
 Cfg.savings_path = os.path.join(_BASE_DIR, 'trained_weights')
 
 

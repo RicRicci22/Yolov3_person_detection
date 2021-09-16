@@ -37,11 +37,15 @@ Tasks completed (07/09/2021):
 - [X] check data augmentation strategy 
 - [X] write activation functions 
 
-Tomorrow:
+Tasks completed (16/09/2021):
 - [X] print anchor box activation during training.
 - [X] correct the small medium large calculation by reffering to percentage over the image 
 - [X] finish benchmarks
 - [X] calculate target size number on trainsets
+
+Tomorrow:
+- [ ] Add examples images in data augmentation 
+
 
 
 TESTS TO BE PERFORMED: 
