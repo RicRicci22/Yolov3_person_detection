@@ -24,8 +24,8 @@ Cfg.gpu = 0
 Cfg.classes = 1
 Cfg.batch = 2
 Cfg.subdivisions = 1
-Cfg.width = 608
-Cfg.height = 608
+Cfg.width = 800
+Cfg.height = 800
 Cfg.channels = 3
 Cfg.learning_rate = 0.0005
 Cfg.momentum = 0.949
@@ -35,16 +35,13 @@ Cfg.max_batches = 500500
 Cfg.steps = [400000, 450000]
 Cfg.policy = Cfg.steps
 Cfg.scales = .1, .1
-Cfg.boxes = 10  # box num
+Cfg.boxes = 50  # box num
 Cfg.TRAIN_EPOCHS = 1
-Cfg.train_label = os.path.join(_BASE_DIR, 'datasets','custom','train','_annotations.txt')
-Cfg.val_label = os.path.join(_BASE_DIR, 'datasets','custom','val','_annotations.txt')
-Cfg.train_dataset_dir = os.path.join(_BASE_DIR, 'datasets','custom','train')
-Cfg.val_dataset_dir = os.path.join(_BASE_DIR, 'datasets','custom','val')
+Cfg.train_label = os.path.join(_BASE_DIR, 'datasets','all_datasets','train','_annotations.txt')
+Cfg.val_label = os.path.join(_BASE_DIR, 'datasets','all_datasets','val','_annotations.txt')
+Cfg.train_dataset_dir = os.path.join(_BASE_DIR, 'datasets','all_datasets','train')
+Cfg.val_dataset_dir = os.path.join(_BASE_DIR, 'datasets','all_datasets','val')
 Cfg.TRAIN_OPTIMIZER = 'adam'
-
-Cfg.custom_val_dir = os.path.join(_BASE_DIR, 'datasets','custom','val')
-Cfg.custom_val_label = os.path.join(_BASE_DIR, 'datasets','custom','val','_annotations.txt')
 
 # Data augmentation
 Cfg.saturation = True
@@ -53,14 +50,14 @@ Cfg.hue = True
 Cfg.mosaic = False
 Cfg.mixup = False
 Cfg.flip = True
-Cfg.gaussian_noise = True
+Cfg.gaussian_noise = False
 Cfg.blur = False
 Cfg.crop = True 
 Cfg.rotate = True
 
 
 # Saving variables 
-Cfg.dataset_name = 'custom'
+Cfg.dataset_name = 'all_datasets'
 Cfg.savings_path = os.path.join(_BASE_DIR, 'trained_weights')
 
 

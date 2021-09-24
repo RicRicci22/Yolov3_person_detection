@@ -10,26 +10,7 @@ from torch.utils.data.dataset import Dataset
 import matplotlib.pyplot as plt
 
 def rand_uniform_strong(min, max):
-    if min > max:
-        swap = min
-        min = max
-        max = swap
-    return random.random() * (max - min) + min
-
-
-def rand_scale(s):
-    scale = rand_uniform_strong(1, s)
-    if random.randint(0, 1):
-        return scale
-    return 1. / scale
-
-
-def rand_precalc_random(min, max, random_part):
-    if max < min:
-        swap = min
-        min = max
-        max = swap
-    return (random_part * (max - min)) + min
+    return random.randint(min*100,max*100)/100 
 
 
 def fill_truth_detection(bboxes, num_boxes, classes, left_extreme,right_extreme, top_extreme,bottom_extreme, original_width,original_height,net_w, net_h):
@@ -246,7 +227,7 @@ class Yolo_dataset(Dataset):
             cut_x = random.randint(int(self.cfg.width * min_offset), int(self.cfg.width * (1 - min_offset)))
             cut_y = random.randint(int(self.cfg.height * min_offset), int(self.cfg.height * (1 - min_offset)))
 
-        dhue, dsat, dexp, flip, blur, rot = 0, 1, 1, 0, 0, -1
+        dhue, dsat, dexp, flip, blur, rot, crop = 0, 1, 1, 0, 0, -1, 0
         gaussian_noise = 0
 
         out_img = np.zeros([self.cfg.height, self.cfg.width, 3])
@@ -264,21 +245,20 @@ class Yolo_dataset(Dataset):
             oh, ow, _ = img.shape
 
             if(self.cfg.hue and random.randint(0,1)):
-                dhue = rand_uniform_strong(-0.15, 0.15)
+                dhue = rand_uniform_strong(-0.5, 0.5)
             if(self.cfg.saturation and random.randint(0,1)):
-                dsat = rand_scale(1.5)
+                dsat = rand_uniform_strong(0, 2)
             if(self.cfg.exposure and random.randint(0,1)):
-                dexp = rand_scale(1.5)
+                dexp = rand_uniform_strong(0.5, 2)
 
             if(self.cfg.flip and random.randint(0,1)):
                 flip = random.randint(-1,1)
             else:
                 flip = -2
             
-            if(self.cfg.rotate and random.randint(0,1)):
+            if((self.cfg.rotate) and random.randint(0,1)):
                 rot = random.randint(0,1)
 
-            crop = 0 
             if(self.cfg.crop and random.randint(0,1)):
                 crop = 1
                 # Crop image 
@@ -330,7 +310,8 @@ class Yolo_dataset(Dataset):
                     truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, left_extreme,right_extreme, 0,oh, ow,oh, self.cfg.width, self.cfg.height)
                     truth[:,0]-=left_extreme
                     truth[:,2]-=left_extreme
-                #print(truth)
+                else:
+                    truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes, 0, ow, 0,oh, ow,oh, self.cfg.width, self.cfg.height)
         
             
             swidth = ow 
@@ -338,7 +319,7 @@ class Yolo_dataset(Dataset):
 
             if(not crop):
                 truth = fill_truth_detection(bboxes, self.cfg.boxes, self.cfg.classes,0, swidth, 0,sheight, ow,oh, self.cfg.width, self.cfg.height)
-            
+
             # FLIPPING 
             if flip==-1:
                 temp_width = self.cfg.width - truth[:, 0]
@@ -363,8 +344,7 @@ class Yolo_dataset(Dataset):
             # Setting gaussian noise 
             if self.cfg.gaussian_noise and random.randint(0, 1):
                 gaussian_noise = random.randint(1,10)/1000
- 
-
+            
             ai = image_data_augmentation(img, self.cfg.width, self.cfg.height, flip, dhue, dsat, dexp, gaussian_noise, blur, truth)
 
             oh,ow,_ = ai.shape

@@ -170,7 +170,7 @@ class Yolo_loss(nn.Module):
         super(Yolo_loss, self).__init__()
         self.device = device
         self.strides = [8, 16, 32]
-        image_size = 608
+        image_size = 800
         self.n_classes = n_classes
         self.n_anchors = n_anchors
 
@@ -248,7 +248,7 @@ class Yolo_loss(nn.Module):
             # calculate iou between truth and reference anchors
             #print(truth_box)
             #print(self.ref_anchors[output_id])
-            anchor_ious_all = bboxes_iou(truth_box.cpu(), self.ref_anchors[output_id], CIoU=True) # shape n_truth_box, n_anchor_boxes
+            anchor_ious_all = bboxes_iou(truth_box.cpu(), self.ref_anchors[output_id]) # shape n_truth_box, n_anchor_boxes
             #print(anchor_ious_all)
             #print(anchor_ious_all)
             #print('self ref anchors shape ',self.ref_anchors[output_id].shape)
@@ -277,7 +277,7 @@ class Yolo_loss(nn.Module):
             #print(truth_box)
             #print(truth_box)
             #print(pred[b].shape)
-            pred_ious = bboxes_iou(pred[b].view(-1, 4), truth_box, xyxy=False, CIoU=True)
+            pred_ious = bboxes_iou(pred[b].view(-1, 4), truth_box, xyxy=False)
             #print(pred[b])
             #print(pred_ious)
             #print(pred[b].view(-1, 4).shape)
@@ -374,7 +374,7 @@ def collate(batch):
     bboxes = torch.from_numpy(bboxes)
     return images, bboxes
 
-def train(model, device, config, epochs=5, save_cp=True, log_step=200, calc_loss_validation = True, evaluate_averages=False):
+def train(model, device, config, epochs=5, save_cp=True, log_step=200, calc_loss_validation = True, evaluate_averages=False, val_ap_list=[], loss_list=[], val_loss_list=[]):
     train_dataset = Yolo_dataset(config.train_label, config, train=True)
     val_dataset = Yolo_dataset(config.val_label, config, train=False)
 
@@ -422,26 +422,9 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=200, calc_loss
 
     save_prefix = 'Yolov4_epoch'
     saved_models = deque()
-    model.train()
-    # To evaluate model
-    step_list = []
-    loss_list = []
-
-    val_loss_list = []
-    val_ap = []
-    val_ap_custom = []
-
-    # Creating figure for total loss 
-    fig = plt.figure()
-    ax1 = fig.add_subplot(111)
-    plt.title('Loss on training samples')
-
-    # Creating figure for validation total losses
-    fig3 = plt.figure()
-    ax6 = fig3.add_subplot(111)
-    plt.title('Loss on validation samples')
 
     for epoch in range(epochs):
+        model.train()
         with tqdm(total=n_train, desc=f'Epoch {epoch + 1}/{epochs}', unit='img', ncols=50) as pbar:
             for i, batch in enumerate(train_loader):
                 images = batch[0] # shape [batch_size, n_ch, width, height]
@@ -465,35 +448,9 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=200, calc_loss
                     print('\n\nTotal loss: ',loss.item(),'\nLast learning rate: ',scheduler.get_last_lr())
                     print('Loss center bboxes: ',loss_xy.item(),'\nLoss bboxes dimension: ',loss_wh.item(),'\nLoss objectness: ',loss_obj.item(),'\nLoss class: ',loss_cls.item())
                     
-                    # Calculating validation loss 
-                    valid_loss = 0.0
-                    if(calc_loss_validation):
-                        with torch.no_grad():
-                            # Creating the temporary model for evaluation
-                            model.eval()
-                            for i_val, batch_val in enumerate(val_loader):
-                                if(i_val>10):
-                                    break
-                                images_val = batch_val[0] # shape [batch_size, n_ch, width, height]
-                                bboxes_val = batch_val[1] # shape [batch_size, n_boxes, box_coord+n_classes]
-
-                                images_val = images.to(device=device, dtype=torch.float32)
-                                bboxes_val = bboxes.to(device=device)
-
-                                bboxes_pred_val = model(images_val) # shape [num_resolutions, batch_size, (5+n_ch)*num_boxes, grid, grid]
-
-                                losses = criterion(bboxes_pred_val, bboxes_val)
-                                valid_loss+=losses[0].cpu().detach().numpy()
-                            valid_loss/=i_val
-                            val_loss_list.append(valid_loss)
-                    
-                        model.train()
-                    
-
-
-                    # Update lists 
+    
+                    # Update loss list 
                     loss_list.append(loss.item())
-                    step_list.append(global_step)
                                     
 
                 pbar.update(images.shape[0]) 
@@ -520,11 +477,35 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=200, calc_loss
 
         # Calculate ap ar
         if(evaluate_averages):
-            print('\nEpoch: ', epoch)
+            print('\nEpoch: ', epoch+1)
             print('Evaluating averages')
+
+            # Calculating validation loss 
+            valid_loss = 0.0
+            if(calc_loss_validation):
+                with torch.no_grad():
+                    # Creating the temporary model for evaluation
+                    model.eval()
+                    for i_val, batch_val in enumerate(val_loader):
+                        if(i_val>10):
+                            break
+                        images_val = batch_val[0] # shape [batch_size, n_ch, width, height]
+                        bboxes_val = batch_val[1] # shape [batch_size, n_boxes, box_coord+n_classes]
+
+                        images_val = images.to(device=device, dtype=torch.float32)
+                        bboxes_val = bboxes.to(device=device)
+
+                        bboxes_pred_val = model(images_val) # shape [num_resolutions, batch_size, (5+n_ch)*num_boxes, grid, grid]
+
+                        losses = criterion(bboxes_pred_val, bboxes_val)
+                        valid_loss+=losses[0].cpu().detach().numpy()
+                    valid_loss/=i_val
+                    val_loss_list.append(valid_loss)
+
             # Create a model 
             with torch.no_grad():
                 model_eval = Yolov4(yolov4conv137weight=None,n_classes=config.classes,inference=True)
+                model_eval.eval()
                 device = torch.device('cuda')
                 model_eval.load_state_dict(model.state_dict())
                 model_eval.to(device=device)
@@ -532,37 +513,12 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=200, calc_loss
                 metric_obj = Metric(config.val_label,config.val_dataset_dir)
                 pred,_ = detector.detect_in_images(0.01)
                 confidence_steps = [0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]
-                values = metric_obj.calculate_precision_recall_f1_lists(pred,confidence_steps,0.3)
+                values = metric_obj.calculate_precision_recall_f1_lists(pred,confidence_steps,0.5)
                 # AP calc.
                 average_prec = metric_obj.calc_AP(values[0],values[1])
-                val_ap.append(average_prec)
-                # # on custom dataset 
-                # detector = Detector(model_eval,True,config.width,config.height,config.custom_val_dir,keep_aspect_ratio=False)
-                # metric_obj = Metric(config.custom_val_label,config.custom_val_dir)
-                # pred,_ = detector.detect_in_images(0.01)
-                # values = metric_obj.calculate_precision_recall_f1_lists(pred,confidence_steps,0.3)
-                # # AP calc.
-                # average_prec = metric_obj.calc_AP(values[0],values[1])
-                # val_ap_custom.append(average_prec)
-        
-        
-    if(evaluate_averages):
-        # PLOT GRAPH AP AND AR
-        fig4 = plt.figure()
-        ax7 = fig4.add_subplot(111)
-        ax7.plot(range(epochs),val_ap)
-        plt.title('Average precision on training dataset validation')
+                val_ap_list.append(average_prec)
 
-        # fig5 = plt.figure()
-        # ax8 = fig5.add_subplot(111)
-        # ax8.plot(range(epochs),val_ap_custom)
-        # plt.title('Average precision on custom dataset validation')
-
-    # PLOT GRAPHS LOSSES
-    ax1.plot(step_list,loss_list)
-    ax6.plot(step_list,val_loss_list)
-
-    plt.show()
+    return val_ap_list, loss_list, val_loss_list
 
 
 
@@ -596,39 +552,52 @@ if __name__ == '__main__':
     model.load_state_dict(new_dictionary)
     model.to(device=device)
     
-    # FIRST PHASE
-    # Freeze all the layers except the changed ones 
-    print('Freezing layers..')
-    for name, param in model.named_parameters():
-        if(not ('head.conv2' in name or 'head.conv10' in name or 'head.conv18' in name)):
-           param.requires_grad = False
-    
-    Cfg.learning_rate = 0.001
-    cfg.TRAIN_EPOCHS = 20
-    
-    train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True,evaluate_averages=True)
+    tot_epochs = 0
 
-    # SECOND PHASE
-    print('Unfreezing backbone and neck layers..')
+    # FIRST PHASE
+    print('Training on all the layers..')
     for name, param in model.named_parameters():
         param.requires_grad = True
     
     Cfg.learning_rate = 0.0005
-    cfg.TRAIN_EPOCHS = 40
+    cfg.TRAIN_EPOCHS = 80
+    tot_epochs+=cfg.TRAIN_EPOCHS
 
-    train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True,evaluate_averages=True)
-
-    # THIRD PHASE
+    val_ap_list, loss_list, val_loss_list = train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True,evaluate_averages=True)
+    
+    # SECOND PHASE
     print('Freezing backbone and neck layers..')
     for name, param in model.named_parameters():
         if(not 'head' in name):
             param.requires_grad = False
     
-    Cfg.learning_rate = 0.0005
-    cfg.TRAIN_EPOCHS = 5
+    Cfg.learning_rate = 0.00001
+    cfg.TRAIN_EPOCHS = 20
+    tot_epochs+=cfg.TRAIN_EPOCHS
 
-    train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True, evaluate_averages=True)
+    val_ap_list, loss_list, val_loss_list = train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True, evaluate_averages=True, val_ap_list=val_ap_list,loss_list=loss_list,val_loss_list=val_loss_list)
 
     # Saving the weights 
     save_path = os.path.join(cfg.savings_path, f'{cfg.dataset_name}{cfg.width}.pth')
     torch.save(model.state_dict(), save_path)
+
+    # PLOTTING average precision
+    fig4 = plt.figure()
+    ax7 = fig4.add_subplot(111)
+    ax7.plot(range(tot_epochs),val_ap_list)
+    plt.title('Average precision on training dataset validation')
+
+    # PLOTTING losses 
+    # Creating figure for total loss 
+    fig = plt.figure()
+    ax1 = fig.add_subplot(111)
+    ax1.plot(range(len(loss_list)),loss_list)
+    plt.title('Loss on training samples')
+
+    # Creating figure for validation total losses
+    fig3 = plt.figure()
+    ax6 = fig3.add_subplot(111)
+    plt.title('Loss on validation samples')
+    ax6.plot(range(len(val_loss_list)),val_loss_list)
+
+    plt.show()

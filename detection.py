@@ -86,7 +86,7 @@ class Detector:
             cap.release()
             writer.release()
 
-    def detect_in_images(self, confidence, output_file=False, visualize_predictions=False):
+    def detect_in_images(self, confidence, output_file=False, visualize_predictions=False,ground_truth=[]):
         # Perform prediction using yolov4 pytorch implementation
         # Creating the file to save output
         if(output_file):
@@ -158,12 +158,19 @@ class Detector:
                 thick = int((imgHeight + imgWidth) // 900)
 
                 boxes_predicted = predictions_dict[image]
+                boxes_true = ground_truth[image]
                 for box in boxes_predicted:
                     left = box[0]
                     top = box[1]
                     right = box[2]
                     bottom = box[3]
                     cv2.rectangle(image_cv,(left, top), (right, bottom), color, thick)
+                for box in boxes_true:
+                    left = box[0]
+                    top = box[1]
+                    right = box[2]
+                    bottom = box[3]
+                    cv2.rectangle(image_cv,(left, top), (right, bottom), (255,0,0), thick)
                 cv2.imwrite('predictions/drawn_'+image, image_cv)
 
         return predictions_dict, fps
@@ -172,16 +179,34 @@ class Detector:
 if __name__ == '__main__':
     # PYTORCH
     # Creating the model
-    model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
-    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\trained_weights\custom608.pth')
-    model.activate_gpu()
-
-    # Creating the detector
-    yolov4_detector = Detector(model,True,608,608,r'datasets\custom\test',keep_aspect_ratio=False)
-    yolov4_detector.process_all_videos(r'C:\Users\Melgani\Desktop\master_degree\Video material',0.3)
-    #pred, fps = yolov4_detector.detect_in_images(0.3,False,True)
+    # model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
+    # model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\trained_weights\custom800.pth')
+    # # model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\trained_weights\sard800.pth')
+    # model.activate_gpu()
+    # metric_obj = Metric(r'datasets\custom\test\_annotations.txt',r'datasets\custom\test')
+    # # # Creating the detector
+    # yolov4_detector = Detector(model,True,800,800,r'datasets\custom\test',keep_aspect_ratio=False)
+    
+    # # #yolov4_detector.process_all_videos(r'C:\Users\Melgani\Desktop\master_degree\Video material',0.5)
+    # pred, fps = yolov4_detector.detect_in_images(0.5,False,True,metric_obj.ground_truth)
+    # print(fps)
+    model_eval = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
+    device = torch.device('cuda')
+    model_eval.load_weights(r'C:\Users\Melgani\Desktop\master_degree\trained_weights\custom800.pth')
+    model_eval.to(device=device)
+    detector = Detector(model_eval,True,800,800,r'datasets\custom\test',keep_aspect_ratio=False)
+    metric_obj = Metric(r'datasets\custom\test\_annotations.txt',r'datasets\custom\test')
+    pred,_ = detector.detect_in_images(0.01)
+    confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.2,0.15,0.1]
+    values = metric_obj.calculate_precision_recall_f1_lists(pred,confidence_steps,0.3)
+    print(values[0])
+    print(values[1])
+    # AP calc.
+    average_prec = metric_obj.calc_AP(values[0],values[1])
+    print(average_prec)
     # print('Creating dict')
-    # meter = Metric(r'datasets\visdrone\test\_annotations.txt',r'datasets\visdrone\test')
+    #meter = Metric(r'datasets\positive_negative\_annotations.txt',r'datasets\positive_negative')
+    #meter.frame_metric(pred,0.3)
     #confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.20,0.15,0.10,0.05]
     #values = meter.calculate_precision_recall_f1_curve(pred,confidence_steps,0.3,plot_graph=True)
     

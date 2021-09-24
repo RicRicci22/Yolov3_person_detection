@@ -28,10 +28,11 @@ class Upsample(nn.Module):
             #C = x.data.size(1)
             #H = x.data.size(2)
             #W = x.data.size(3)
-
-            return x.view(x.size(0), x.size(1), x.size(2), 1, x.size(3), 1).\
-                    expand(x.size(0), x.size(1), x.size(2), target_size[2] // x.size(2), x.size(3), target_size[3] // x.size(3)).\
-                    contiguous().view(x.size(0), x.size(1), target_size[2], target_size[3])
+            
+            # return x.view(x.size(0), x.size(1), x.size(2), 1, x.size(3), 1).\
+            #         expand(x.size(0), x.size(1), x.size(2), target_size[2] // x.size(2), x.size(3), target_size[3] // x.size(3)).\
+            #         contiguous().view(x.size(0), x.size(1), target_size[2], target_size[3])
+            return  F.interpolate(x, size=(target_size[2], target_size[3]), mode='nearest')
         else:
             return F.interpolate(x, size=(target_size[2], target_size[3]), mode='nearest')
 

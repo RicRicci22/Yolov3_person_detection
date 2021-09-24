@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import os 
 from copy import deepcopy
 import cv2
+import torch
+import math
 # This file will contain some functions to perform metrics on a dataset
 # It will work on sard and visdrone datasets to be more precise.
 
@@ -93,7 +95,7 @@ class Metric():
                         matrix[i,j]=self.evaluate_IoU(self.ground_truth[key][i],predictions_dict[key][j])
                 # iterating on the max
                 max_value = np.amax(matrix)
-                while(max_value>iou_threshold):
+                while(max_value>=iou_threshold):
                     max_indices = np.where(matrix == max_value)
                     true_positive+=1
                     # Check if the truth is small, medium large 
