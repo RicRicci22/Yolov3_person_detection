@@ -4,6 +4,8 @@ import torch.nn.functional as F
 from tool.torch_utils import *
 from tool.yolo_layer import YoloLayer
 
+import matplotlib.pyplot as plt 
+
 
 class Mish(torch.nn.Module):
     def __init__(self):
@@ -333,7 +335,7 @@ class Yolov4Head(nn.Module):
                                 anchor_mask=[0, 1, 2], num_classes=n_classes,
                                 #anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401], # ORIGINAL ANCHORS
                                 #anchors=[7, 11, 12, 21, 16, 32, 22, 35, 33, 48, 36, 67, 48, 71, 79, 100, 94, 168], #VISDRONE ANCHORS
-                                #anchors = [8,16,12,18,20,20,22,48,36,75,36,36,97,125,151,160,290,170], # SARD ANCHORS
+                                #anchors = [21,34,29,39,49,60,52,61,71,78,91,110,97,125,151,160,290,173], # SARD ANCHORS
                                 anchors = [14,22, 25,50, 39,57, 51,75, 52,76, 63,105, 72,125, 112,268, 135,306], # CUSTOM DATASET ANCHORS
                                 num_anchors=9, stride=8)
 
@@ -353,7 +355,7 @@ class Yolov4Head(nn.Module):
                                 anchor_mask=[3, 4, 5], num_classes=n_classes,
                                 #anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401], # ORIGINAL ANCHORS
                                 #anchors=[7, 11, 12, 21, 16, 32, 22, 35, 33, 48, 36, 67, 48, 71, 79, 100, 94, 168], #VISDRONE ANCHORS 
-                                #anchors = [8,16,12,18,20,20,22,48,36,75,36,36,97,125,151,160,290,170], # SARD ANCHORS
+                                #anchors = [21,34,29,39,49,60,52,61,71,78,91,110,97,125,151,160,290,173], # SARD ANCHORS
                                 anchors = [14,22, 25,50, 39,57, 51,75, 52,76, 63,105, 72,125, 112,268, 135,306], # CUSTOM DATASET ANCHORS
                                 num_anchors=9, stride=16)
 
@@ -373,7 +375,7 @@ class Yolov4Head(nn.Module):
                                 anchor_mask=[6, 7, 8], num_classes=n_classes,
                                 #anchors=[12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401],
                                 #anchors=[7, 11, 12, 21, 16, 32, 22, 35, 33, 48, 36, 67, 48, 71, 79, 100, 94, 168], #VISDRONE ANCHORS 
-                                #anchors = [8,16,12,18,20,20,22,48,36,75,36,36,97,125,151,160,290,170], # SARD ANCHORS
+                                #anchors = [21,34,29,39,49,60,52,61,71,78,91,110,97,125,151,160,290,173], # SARD ANCHORS
                                 anchors = [14,22, 25,50, 39,57, 51,75, 52,76, 63,105, 72,125, 112,268, 135,306], # CUSTOM DATASET ANCHORS
                                 num_anchors=9, stride=32)
 
@@ -406,6 +408,12 @@ class Yolov4Head(nn.Module):
         x18 = self.conv18(x17)
         
         if self.inference:
+            # objectness = x2[:,4,:,:]
+            # #print(objectness.shape)
+            # objectness = torch.reshape(objectness,(100,100))
+            # objectness = objectness.cpu().detach().numpy()
+            # plt.matshow(objectness)
+            # plt.show()
             y1 = self.yolo1(x2)
             y2 = self.yolo2(x10)
             y3 = self.yolo3(x18)

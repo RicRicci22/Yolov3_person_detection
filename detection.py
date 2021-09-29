@@ -93,15 +93,14 @@ class Detector:
             detections = open(self.testset+r'\_predictions.txt','w')
         # Create output prediction dictionary
         predictions_dict = {}
+        tot_img = 0
+        tot_time = 0
         # Starting the loop
-        t0 = time.time()
-        #print('Detecting in images..')
         for filename in os.listdir(self.testset):
             f = os.path.join(self.testset, filename)
             if(os.path.isfile(f)):
                 # Is the file an image??
                 if(filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif'))):
-                    #print('Processing image '+filename)
                     img = cv2.imread(os.path.join(self.testset,filename))
                     original_height, original_width, _ = img.shape
                     if(self.keep_aspect_ratio):
@@ -111,8 +110,12 @@ class Detector:
                         sized = cv2.resize(img, (self.input_width, self.input_height))
                         sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
                     # perform detection
-                    boxes = do_detect(self.model, sized, confidence, 0.2, self.use_cuda,print_time=False)
-                    # Process boxes to keep only people (boxes[0]) cause in detection batch = 1!!!!
+                    boxes, total_time = do_detect(self.model, sized, confidence, 0.2, self.use_cuda,print_time=False)
+                    if(tot_img!=0):
+                        tot_time += total_time
+                    
+                    tot_img += 1
+
                     new_boxes = [box for box in boxes[0] if box[5]==0]
                     if(output_file):
                         detections.write(filename)
@@ -140,8 +143,8 @@ class Detector:
                         predictions_dict[filename].append([x1,y1,x2,y2,obj_class,obj_conf])
                     if(output_file):
                         detections.write('\n')
-        t1 = time.time()
-        fps = len(predictions_dict.keys())/(t1-t0)
+        
+        fps = (tot_img-1)/tot_time
 
         # Visualizing predictions 
         if(visualize_predictions):
@@ -165,12 +168,12 @@ class Detector:
                     right = box[2]
                     bottom = box[3]
                     cv2.rectangle(image_cv,(left, top), (right, bottom), color, thick)
-                for box in boxes_true:
-                    left = box[0]
-                    top = box[1]
-                    right = box[2]
-                    bottom = box[3]
-                    cv2.rectangle(image_cv,(left, top), (right, bottom), (255,0,0), thick)
+                # for box in boxes_true:
+                #     left = box[0]
+                #     top = box[1]
+                #     right = box[2]
+                #     bottom = box[3]
+                #     cv2.rectangle(image_cv,(left, top), (right, bottom), (255,0,0), thick)
                 cv2.imwrite('predictions/drawn_'+image, image_cv)
 
         return predictions_dict, fps
@@ -192,19 +195,23 @@ if __name__ == '__main__':
     # print(fps)
     model_eval = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
     device = torch.device('cuda')
-    model_eval.load_weights(r'C:\Users\Melgani\Desktop\master_degree\trained_weights\custom800.pth')
+    model_eval.load_weights(r'C:\Users\Melgani\Desktop\master_degree\trained_weights\all_datasets_finetuned_custom800.pth')
     model_eval.to(device=device)
-    detector = Detector(model_eval,True,800,800,r'datasets\custom\test',keep_aspect_ratio=False)
-    metric_obj = Metric(r'datasets\custom\test\_annotations.txt',r'datasets\custom\test')
-    pred,_ = detector.detect_in_images(0.01)
-    confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.2,0.15,0.1]
-    values = metric_obj.calculate_precision_recall_f1_lists(pred,confidence_steps,0.3)
-    print(values[0])
-    print(values[1])
-    # AP calc.
-    average_prec = metric_obj.calc_AP(values[0],values[1])
-    print(average_prec)
-    # print('Creating dict')
+    detector = Detector(model_eval,True,800,800,r'datasets\visdrone\test',keep_aspect_ratio=False)
+    metric_obj = Metric(r'datasets\visdrone\test\_annotations.txt',r'datasets\visdrone\test')
+    # pred,_ = detector.detect_in_images(0.2,False,True,metric_obj.ground_truth)
+    #pred,_ = detector.detect_in_images(0.01)
+    pred, fps = detector.detect_in_images(0.5,False,False,metric_obj.ground_truth)
+    print(fps)
+    # print(pred)
+    # confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.2,0.15,0.1]
+    # values = metric_obj.calculate_precision_recall_f1_lists(pred,confidence_steps,0.5)
+    # print(values[0])
+    # print(values[1])
+    # # AP calc.
+    # average_prec = metric_obj.calc_AP(values[0],values[1])
+    # print(average_prec)
+    #print('Creating dict')
     #meter = Metric(r'datasets\positive_negative\_annotations.txt',r'datasets\positive_negative')
     #meter.frame_metric(pred,0.3)
     #confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.20,0.15,0.10,0.05]

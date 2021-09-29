@@ -447,10 +447,6 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=200, calc_loss
                 if global_step % (log_step * config.subdivisions) == 0: # After tot images, print info 
                     print('\n\nTotal loss: ',loss.item(),'\nLast learning rate: ',scheduler.get_last_lr())
                     print('Loss center bboxes: ',loss_xy.item(),'\nLoss bboxes dimension: ',loss_wh.item(),'\nLoss objectness: ',loss_obj.item(),'\nLoss class: ',loss_cls.item())
-                    
-    
-                    # Update loss list 
-                    loss_list.append(loss.item())
                                     
 
                 pbar.update(images.shape[0]) 
@@ -479,6 +475,9 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=200, calc_loss
         if(evaluate_averages):
             print('\nEpoch: ', epoch+1)
             print('Evaluating averages')
+
+            # Update loss list 
+            loss_list.append(loss.item())
 
             # Calculating validation loss 
             valid_loss = 0.0
@@ -559,23 +558,23 @@ if __name__ == '__main__':
     for name, param in model.named_parameters():
         param.requires_grad = True
     
-    Cfg.learning_rate = 0.0005
-    cfg.TRAIN_EPOCHS = 80
+    cfg.learning_rate = 0.0005 
+    cfg.TRAIN_EPOCHS = 100
     tot_epochs+=cfg.TRAIN_EPOCHS
 
     val_ap_list, loss_list, val_loss_list = train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True,evaluate_averages=True)
     
-    # SECOND PHASE
-    print('Freezing backbone and neck layers..')
-    for name, param in model.named_parameters():
-        if(not 'head' in name):
-            param.requires_grad = False
+    # # SECOND PHASE
+    # print('Freezing backbone and neck layers..')
+    # for name, param in model.named_parameters():
+    #     if(not 'head' in name):
+    #         param.requires_grad = False
     
-    Cfg.learning_rate = 0.00001
-    cfg.TRAIN_EPOCHS = 20
-    tot_epochs+=cfg.TRAIN_EPOCHS
+    # cfg.learning_rate = 0.00005
+    # cfg.TRAIN_EPOCHS = 20
+    # tot_epochs+=cfg.TRAIN_EPOCHS
 
-    val_ap_list, loss_list, val_loss_list = train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True, evaluate_averages=True, val_ap_list=val_ap_list,loss_list=loss_list,val_loss_list=val_loss_list)
+    # val_ap_list, loss_list, val_loss_list = train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True, evaluate_averages=True, val_ap_list=val_ap_list,loss_list=loss_list,val_loss_list=val_loss_list)
 
     # Saving the weights 
     save_path = os.path.join(cfg.savings_path, f'{cfg.dataset_name}{cfg.width}.pth')

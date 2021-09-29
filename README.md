@@ -44,15 +44,11 @@ Tasks completed (16/09/2021):
 - [X] calculate target size number on trainsets
 
 Tomorrow:
-- [ ] Add examples images in data augmentation 
-
-
-
-TESTS TO BE PERFORMED: 
-- ciou test -> fine tune yolov4 using paradigm with and without ciou. Test on visdrone. 
-- anchor box test -> fine tune yolov4 using paradigm with predefined anchors, test on visdrone. Then fine tune with custom anchors, test on visdrone. The same for sard. Test on                        sard and custom. Try to plot graph of bounding box choices 
-- input resolution vs speed test -> fine tune using different input resolutions for every dataset (512 - 608 - 704 - 800 - 896 - 992). Test on dataset. 
-- augmentation strategies test -> test with or without augmentation.
+- [X] Add examples images in data augmentation 
+- [ ] Insert all results in test
+- [ ] Correct introduction and yolo paragraphs 
+- [ ] Create jetson nano launcher
+- [ ] Correct FPS and metrics values in test resolutions 
 
 
 AUGMENTATION STRATEGIES 

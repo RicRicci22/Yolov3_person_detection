@@ -37,10 +37,10 @@ Cfg.policy = Cfg.steps
 Cfg.scales = .1, .1
 Cfg.boxes = 50  # box num
 Cfg.TRAIN_EPOCHS = 1
-Cfg.train_label = os.path.join(_BASE_DIR, 'datasets','all_datasets','train','_annotations.txt')
-Cfg.val_label = os.path.join(_BASE_DIR, 'datasets','all_datasets','val','_annotations.txt')
-Cfg.train_dataset_dir = os.path.join(_BASE_DIR, 'datasets','all_datasets','train')
-Cfg.val_dataset_dir = os.path.join(_BASE_DIR, 'datasets','all_datasets','val')
+Cfg.train_label = os.path.join(_BASE_DIR, 'datasets','custom','train','_annotations.txt')
+Cfg.val_label = os.path.join(_BASE_DIR, 'datasets','custom','val','_annotations.txt')
+Cfg.train_dataset_dir = os.path.join(_BASE_DIR, 'datasets','custom','train')
+Cfg.val_dataset_dir = os.path.join(_BASE_DIR, 'datasets','custom','val')
 Cfg.TRAIN_OPTIMIZER = 'adam'
 
 # Data augmentation
@@ -57,7 +57,7 @@ Cfg.rotate = True
 
 
 # Saving variables 
-Cfg.dataset_name = 'all_datasets'
+Cfg.dataset_name = 'custom'
 Cfg.savings_path = os.path.join(_BASE_DIR, 'trained_weights')
 
 
