@@ -6,9 +6,6 @@ from tool.torch_utils import *
 from models import Yolov4
 import cv2
 import os
-import time
-
-import pickle
 
 class Detector:
     def __init__(self,model,use_cuda,input_width,input_height,testset,keep_aspect_ratio):
@@ -60,7 +57,8 @@ class Detector:
                 sized = cv2.resize(img, (self.input_width, self.input_height))
                 sized = cv2.cvtColor(sized, cv2.COLOR_BGR2RGB)
 
-                boxes = do_detect(self.model, sized, confidence, 0.4, self.use_cuda)
+                boxes,totaltime = do_detect(self.model, sized, confidence, 0.4, self.use_cuda)
+                #print(boxes)
                 new_boxes = [box for box in boxes[0] if box[5]==0]
                 for box in new_boxes:
                     x1 = int(box[0]*width)
@@ -161,7 +159,7 @@ class Detector:
                 thick = int((imgHeight + imgWidth) // 900)
 
                 boxes_predicted = predictions_dict[image]
-                boxes_true = ground_truth[image]
+                #boxes_true = ground_truth[image]
                 for box in boxes_predicted:
                     left = box[0]
                     top = box[1]
@@ -182,70 +180,32 @@ class Detector:
 if __name__ == '__main__':
     # PYTORCH
     # Creating the model
-    # model = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
-    # model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\trained_weights\custom800.pth')
-    # # model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\trained_weights\sard800.pth')
-    # model.activate_gpu()
-    # metric_obj = Metric(r'datasets\custom\test\_annotations.txt',r'datasets\custom\test')
-    # # # Creating the detector
-    # yolov4_detector = Detector(model,True,800,800,r'datasets\custom\test',keep_aspect_ratio=False)
+    model = Yolov4(yolov4conv137weight=None,n_classes=80,inference=True)
+    #model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\trained_weights\all_datasets\finetuned_custom\100_epochs\custom800.pth')
+    model.load_weights(r'C:\Users\Melgani\Desktop\master_degree\weight\yolov4.pth')
+    model.activate_gpu()
+    yolov4_detector = Detector(model,True,800,800,r'C:\Users\Melgani\Desktop\master_degree\datasets\positive_negative',keep_aspect_ratio=False)
     
-    # # #yolov4_detector.process_all_videos(r'C:\Users\Melgani\Desktop\master_degree\Video material',0.5)
+    #yolov4_detector.process_all_videos(r'C:\Users\Melgani\Desktop\master_degree\Video material',0.5)
     # pred, fps = yolov4_detector.detect_in_images(0.5,False,True,metric_obj.ground_truth)
     # print(fps)
-    model_eval = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
-    device = torch.device('cuda')
-    model_eval.load_weights(r'C:\Users\Melgani\Desktop\master_degree\trained_weights\all_datasets_finetuned_custom800.pth')
-    model_eval.to(device=device)
-    detector = Detector(model_eval,True,800,800,r'datasets\visdrone\test',keep_aspect_ratio=False)
-    metric_obj = Metric(r'datasets\visdrone\test\_annotations.txt',r'datasets\visdrone\test')
-    # pred,_ = detector.detect_in_images(0.2,False,True,metric_obj.ground_truth)
-    #pred,_ = detector.detect_in_images(0.01)
-    pred, fps = detector.detect_in_images(0.5,False,False,metric_obj.ground_truth)
+    # model_eval = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True)
+    # device = torch.device('cuda')
+    # model_eval.load_weights(r'C:\Users\Melgani\Desktop\master_degree\trained_weights\Yolov4_epoch80.pth')
+    # model_eval.to(device=device)
+    # detector = Detector(model_eval,True,800,800,r'datasets\custom\test',keep_aspect_ratio=False)
+    metric_obj = Metric(r'C:\Users\Melgani\Desktop\master_degree\datasets\positive_negative\_annotations.txt',r'C:\Users\Melgani\Desktop\master_degree\datasets\positive_negative')
+
+    #pred,fps = yolov4_detector.detect_in_images(0.01)
+    pred, fps = yolov4_detector.detect_in_images(0.5,False,True,metric_obj.ground_truth)
     print(fps)
-    # print(pred)
+    #print(pred)
     # confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.2,0.15,0.1]
-    # values = metric_obj.calculate_precision_recall_f1_lists(pred,confidence_steps,0.5)
+    # values = metric_obj.calculate_precision_recall_f1_lists(pred,confidence_steps,0.2)
     # print(values[0])
     # print(values[1])
     # # AP calc.
     # average_prec = metric_obj.calc_AP(values[0],values[1])
     # print(average_prec)
-    #print('Creating dict')
-    #meter = Metric(r'datasets\positive_negative\_annotations.txt',r'datasets\positive_negative')
-    #meter.frame_metric(pred,0.3)
-    #confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.20,0.15,0.10,0.05]
-    #values = meter.calculate_precision_recall_f1_curve(pred,confidence_steps,0.3,plot_graph=True)
-    
-    # precision_list, recall_list, small_prec, small_rec, medium_prec, medium_rec, large_prec, large_rec = meter.calculate_precision_recall_f1_curve(pred,confidence_steps,0.2, plot_graph=True)
-    # print(precision_list)
-    # print(recall_list)
-    # print(small_prec)
-    # ap, ar = meter.calc_AP_AR(precision_list,recall_list)
-    # aps, ars = meter.calc_AP_AR(small_prec,small_rec)
-    # apm, arm = meter.calc_AP_AR(medium_prec,medium_rec)
-    # apl, arl = meter.calc_AP_AR(large_prec,large_rec)
-    
-    # print('Total')
-    # print(ap,ar)
-    # print('Small objs.')
-    # print(aps,ars)
-    # print('Medium objs.')
-    # print(apm,arm)
-    # print('Large objs.')
-    # print(apl,arl)
 
-    # print('Mean average precision over thresholds')
-    # values = meter.average_map_mar_iou_threshold(pred)
-    # print('Total')
-    # print('Map: '+str(values[0]))
-    # print('Mar: '+str(values[1]))
-    # print('Small')
-    # print('Map: '+str(values[2]))
-    # print('Mar: '+str(values[3]))
-    # print('Medium')
-    # print('Map: '+str(values[4]))
-    # print('Mar: '+str(values[5]))
-    # print('Large')
-    # print('Map: '+str(values[6]))
-    # print('Mar: '+str(values[7]))
+    metric_obj.frame_metric(pred,0.5)

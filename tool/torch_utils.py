@@ -66,5 +66,5 @@ def do_detect(model, img, conf_thresh, nms_thresh, use_cuda=1, print_time=False)
     
     total_time = (t2-t0)
 
-    return utils.post_processing(img, conf_thresh, nms_thresh, output, print_time=False), total_time
+    return utils.post_processing(conf_thresh, nms_thresh, output, print_time=False), total_time
 

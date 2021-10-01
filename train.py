@@ -31,52 +31,7 @@ from models import Yolov4
 from detection import Detector
 from metrics import Metric
 import matplotlib.pyplot as plt 
-import matplotlib.patches as mpatches
 
-
-
-# def bboxes_iou(bboxes_a, bboxes_b, xyxy=True):
-#     """Calculate the Intersection of Unions (IoUs) between bounding boxes.
-#     IoU is calculated as a ratio of area of the intersection
-#     and area of the union.
-#     Args:
-#         bbox_a (array): An array whose shape is :math:`(N, 4)`.
-#             :math:`N` is the number of bounding boxes.
-#             The dtype should be :obj:`numpy.float32`.
-#         bbox_b (array): An array similar to :obj:`bbox_a`,
-#             whose shape is :math:`(K, 4)`.
-#             The dtype should be :obj:`numpy.float32`.
-#     Returns:
-#         array:
-#         An array whose shape is :math:`(N, K)`. \
-#         An element at index :math:`(n, k)` contains IoUs between \
-#         :math:`n` th bounding box in :obj:`bbox_a` and :math:`k` th bounding \
-#         box in :obj:`bbox_b`.
-#     from: https://github.com/chainer/chainercv
-#     """
-#     if bboxes_a.shape[1] != 4 or bboxes_b.shape[1] != 4:
-#         raise IndexError
-
-#     # top left
-#     if xyxy:
-#         tl = torch.max(bboxes_a[:, None, :2], bboxes_b[:, :2])
-#         # bottom right
-#         br = torch.min(bboxes_a[:, None, 2:], bboxes_b[:, 2:])
-#         area_a = torch.prod(bboxes_a[:, 2:] - bboxes_a[:, :2], 1)
-#         area_b = torch.prod(bboxes_b[:, 2:] - bboxes_b[:, :2], 1)
-#     else:
-#         tl = torch.max((bboxes_a[:, None, :2] - bboxes_a[:, None, 2:] / 2),
-#                        (bboxes_b[:, :2] - bboxes_b[:, 2:] / 2))
-#         # bottom right
-#         br = torch.min((bboxes_a[:, None, :2] + bboxes_a[:, None, 2:] / 2),
-#                        (bboxes_b[:, :2] + bboxes_b[:, 2:] / 2))
-
-#         area_a = torch.prod(bboxes_a[:, 2:], 1)
-#         area_b = torch.prod(bboxes_b[:, 2:], 1)
-#     en = (tl < br).type(tl.type()).prod(dim=2)
-#     area_i = torch.prod(br - tl, 2) * en  # * ((tl < br).all())
-    
-#     return area_i / (area_a[:, None] + area_b - area_i)
 
 def bboxes_iou(bboxes_a, bboxes_b, xyxy=True, GIoU=False, DIoU=False, CIoU=False):
     """Calculate the Intersection of Unions (IoUs) between bounding boxes.
@@ -475,6 +430,7 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=200, calc_loss
         if(evaluate_averages):
             print('\nEpoch: ', epoch+1)
             print('Evaluating averages')
+            model.eval()
 
             # Update loss list 
             loss_list.append(loss.item())
@@ -484,7 +440,6 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=200, calc_loss
             if(calc_loss_validation):
                 with torch.no_grad():
                     # Creating the temporary model for evaluation
-                    model.eval()
                     for i_val, batch_val in enumerate(val_loader):
                         if(i_val>10):
                             break
@@ -530,25 +485,25 @@ if __name__ == '__main__':
     cfg = get_args(**Cfg)
 
     # Fine tuning starting from yolo pretrained weights
-    weight_path = r'C:\Users\Melgani\Desktop\master_degree\weight\yolov4.pth'
+    weight_path = r'C:\Users\Melgani\Desktop\master_degree\trained_weights\all_datasets\all_datasets800.pth'
     device = torch.device('cuda')
     # Creating the empty model
     model = Yolov4(yolov4conv137weight=None,n_classes=1)
     # Fusing dictionaries of weights, all the weights except the heads 
-    new_dictionary = {}
+    #new_dictionary = {}
     weight_dictionary = torch.load(weight_path)
-    for key, value in weight_dictionary.items():
-        if(not ('head.conv2' in key or 'head.conv10' in key or 'head.conv18' in key)):
-            new_dictionary[key]=value
+    # for key, value in weight_dictionary.items():
+    #     if(not ('head.conv2' in key or 'head.conv10' in key or 'head.conv18' in key)):
+    #         new_dictionary[key]=value
     
-    #Add the remaining keys
-    model_dict = model.state_dict()
-    for key, value in model_dict.items():
-        if (not key in new_dictionary.keys()):
-            new_dictionary[key] = value
+    # #Add the remaining keys
+    # model_dict = model.state_dict()
+    # for key, value in model_dict.items():
+    #     if (not key in new_dictionary.keys()):
+    #         new_dictionary[key] = value
 
     # Loading the dict 
-    model.load_state_dict(new_dictionary)
+    model.load_state_dict(weight_dictionary)
     model.to(device=device)
     
     tot_epochs = 0
@@ -558,23 +513,23 @@ if __name__ == '__main__':
     for name, param in model.named_parameters():
         param.requires_grad = True
     
-    cfg.learning_rate = 0.0005 
-    cfg.TRAIN_EPOCHS = 100
+    cfg.learning_rate = 0.0005
+    cfg.TRAIN_EPOCHS = 80
     tot_epochs+=cfg.TRAIN_EPOCHS
 
     val_ap_list, loss_list, val_loss_list = train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True,evaluate_averages=True)
     
-    # # SECOND PHASE
-    # print('Freezing backbone and neck layers..')
-    # for name, param in model.named_parameters():
-    #     if(not 'head' in name):
-    #         param.requires_grad = False
+    # SECOND PHASE
+    print('Freezing backbone and neck layers..')
+    for name, param in model.named_parameters():
+        if(not 'head' in name):
+            param.requires_grad = False
     
-    # cfg.learning_rate = 0.00005
-    # cfg.TRAIN_EPOCHS = 20
-    # tot_epochs+=cfg.TRAIN_EPOCHS
+    cfg.learning_rate = 0.0001
+    cfg.TRAIN_EPOCHS = 20
+    tot_epochs+=cfg.TRAIN_EPOCHS
 
-    # val_ap_list, loss_list, val_loss_list = train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True, evaluate_averages=True, val_ap_list=val_ap_list,loss_list=loss_list,val_loss_list=val_loss_list)
+    val_ap_list, loss_list, val_loss_list = train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True, evaluate_averages=True, val_ap_list=val_ap_list,loss_list=loss_list,val_loss_list=val_loss_list)
 
     # Saving the weights 
     save_path = os.path.join(cfg.savings_path, f'{cfg.dataset_name}{cfg.width}.pth')
@@ -584,7 +539,6 @@ if __name__ == '__main__':
     fig4 = plt.figure()
     ax7 = fig4.add_subplot(111)
     ax7.plot(range(tot_epochs),val_ap_list)
-    plt.title('Average precision on training dataset validation')
 
     # PLOTTING losses 
     # Creating figure for total loss 

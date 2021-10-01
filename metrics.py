@@ -3,8 +3,7 @@ import matplotlib.pyplot as plt
 import os 
 from copy import deepcopy
 import cv2
-import torch
-import math
+
 # This file will contain some functions to perform metrics on a dataset
 # It will work on sard and visdrone datasets to be more precise.
 
@@ -25,7 +24,12 @@ class Metric():
                 ground_truth_dict[pieces[0]]=[]
                 for bbox in pieces[1:]:
                     coords = bbox.split(',')
-                    ground_truth_dict[pieces[0]].append([int(coords[0]),int(coords[1]),int(coords[2]),int(coords[3]),int(coords[4]),1])
+                    try:
+                        ground_truth_dict[pieces[0]].append([int(coords[0]),int(coords[1]),int(coords[2]),int(coords[3]),int(coords[4]),1])
+                    except:
+                        continue
+                        #print('There could be a problem in the annots')
+
         self.ground_truth = ground_truth_dict
         # Loading resolution dictionary
         resolution_dict = {}
@@ -241,8 +245,12 @@ class Metric():
                 true_negative+=1
             elif(len(truth)==0 and len(predictions_dict[key])!=0):
                 # False positive
+                print('false positive')
+                print(key)
                 false_positive+=1
             elif(len(truth)!=0 and len(predictions_dict[key])==0):
+                print('false negative')
+                print(key)
                 false_negative+=1
             else:
                 matrix = np.zeros((len(self.ground_truth[key]),len(predictions_dict[key])))
@@ -253,6 +261,8 @@ class Metric():
                     # True positive 
                     true_positive+=1
                 else:
+                    print('false positive')
+                    print(key)
                     false_positive+=1
         
         print('True positive: ',true_positive)
