@@ -47,8 +47,10 @@ Tomorrow:
 - [X] Add examples images in data augmentation 
 - [ ] Insert all results in test
 - [ ] Correct introduction and yolo paragraphs 
-- [ ] Create jetson nano launcher
+- [X] Create jetson nano launcher
 - [ ] Correct FPS and metrics values in test resolutions 
+- [ ] Create onnx launcher ? 
+- [ ] Insert images of custom dataset 
 
 
 AUGMENTATION STRATEGIES 
