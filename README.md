@@ -50,7 +50,7 @@ Tomorrow:
 - [X] Create jetson nano launcher
 - [ ] Correct FPS and metrics values in test resolutions 
 - [ ] Create onnx launcher ? 
-- [ ] Insert images of custom dataset 
+- [X] Insert images of custom dataset 
 
 
 AUGMENTATION STRATEGIES 
