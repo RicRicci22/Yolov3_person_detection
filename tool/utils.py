@@ -186,7 +186,6 @@ def post_processing(conf_thresh, nms_thresh, output, print_time=False):
 
         bboxes_batch = []
         for i in range(box_array.shape[0]):
-
             argwhere = max_conf[i] > conf_thresh
             l_box_array = box_array[i, argwhere, :]
             #print(l_box_array.shape)
@@ -194,18 +193,14 @@ def post_processing(conf_thresh, nms_thresh, output, print_time=False):
             #print(l_max_conf.shape)
             l_max_id = max_id[i, argwhere]
             #print(l_max_id.shape) # INUTILE!
-
             bboxes = []
             # nms for each class
             for j in range(num_classes):
-
                 cls_argwhere = l_max_id == j
                 ll_box_array = l_box_array[cls_argwhere, :]
                 ll_max_conf = l_max_conf[cls_argwhere]
                 ll_max_id = l_max_id[cls_argwhere]
-
                 keep = nms_cpu(ll_box_array, ll_max_conf, nms_thresh)
-
                 if (keep.size > 0):
                     ll_box_array = ll_box_array[keep, :]
                     ll_max_conf = ll_max_conf[keep]
@@ -224,7 +219,7 @@ def post_processing(conf_thresh, nms_thresh, output, print_time=False):
             print('Post processing total : %f' % (t3 - t1))
             print('-----------------------------------')
 
-    return bboxes_batch
+    return bboxes_batch, (t3-t1)
 
 def parse_gtruth(gt_path):
     ground_truth_dict = {}

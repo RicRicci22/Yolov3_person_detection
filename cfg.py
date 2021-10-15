@@ -51,7 +51,7 @@ Cfg.mosaic = False
 Cfg.mixup = False
 Cfg.flip = True
 Cfg.gaussian_noise = False
-Cfg.blur = True
+Cfg.blur = False
 Cfg.crop = True 
 Cfg.rotate = True
 

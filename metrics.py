@@ -13,12 +13,14 @@ class Metric():
     def __init__(self,ground_truth_path,dataset_directory):
         self.dataset_directory = dataset_directory
         self.ground_truth_path = ground_truth_path
-        files_in_dataset_folder = [file for file in os.listdir(self.dataset_directory)]
+        files_in_dataset_folder = [file2 for file2 in os.listdir(self.dataset_directory)]
         # Parsing ground truth 
         ground_truth_dict = {}
         file = open(self.ground_truth_path,'r')
         for row in file.readlines():
             pieces = row.split(' ')
+            if('\n' in pieces[0]):
+                pieces[0] = pieces[0].replace('\n','')
             # Check if there is the corresponding image
             if(pieces[0] in files_in_dataset_folder):
                 ground_truth_dict[pieces[0]]=[]
@@ -29,8 +31,11 @@ class Metric():
                     except:
                         continue
                         #print('There could be a problem in the annots')
+            else:
+                print(pieces[0])
 
         self.ground_truth = ground_truth_dict
+        #print(len(self.ground_truth.keys()))
         # Loading resolution dictionary
         resolution_dict = {}
         for key in self.ground_truth.keys():
@@ -178,7 +183,6 @@ class Metric():
         ordered_list_prediction = sorted(list_of_predictions, key=lambda x: x[2],reverse=True)
         # Creating new prediction dict, inserting one bbox at a time
         for confidence_step in confidence_steps:
-            # print(confidence_step)
             new_pred_dict = {}
             for bbox in ordered_list_prediction:
                 if(bbox[0] in new_pred_dict and bbox[2]>confidence_step):
@@ -225,10 +229,6 @@ class Metric():
             average_prec+=(recall_list[index+1]-recall_list[index])*precision_list[index]
 
         return average_prec
-    
-    def calc_AR(self, recall_list):
-        # Calculate average recall as the average of recalls for different confidences 
-        return np.mean(recall_list)
 
             
     # NEW METRIC IMPLEMENTATION 
@@ -245,13 +245,14 @@ class Metric():
                 true_negative+=1
             elif(len(truth)==0 and len(predictions_dict[key])!=0):
                 # False positive
-                print('false positive')
-                print(key)
+                #print('false positive')
+                #print(key)
                 false_positive+=1
             elif(len(truth)!=0 and len(predictions_dict[key])==0):
-                print('false negative')
-                print(key)
+                #print('false negative')
+                #print(key)
                 false_negative+=1
+                print(key)
             else:
                 matrix = np.zeros((len(self.ground_truth[key]),len(predictions_dict[key])))
                 for i in range(len(self.ground_truth[key])):
@@ -261,12 +262,37 @@ class Metric():
                     # True positive 
                     true_positive+=1
                 else:
-                    print('false positive')
-                    print(key)
+                    #print('false positive')
+                    #print(key)
                     false_positive+=1
         
-        print('True positive: ',true_positive)
-        print('False positive: ',false_positive)
-        print('True negative: ',true_negative)
-        print('False negative: ',false_negative)
+        tot_positives = true_positive+false_negative
+        tot_negatives = true_negative+false_positive
+        
+        print('True positive: ',(true_positive/tot_positives)*100)
+        #print('False positive: ',(false_positive/tot_negatives)*100)
+        #print('True negative: ',(true_negative/tot_negatives)*100)
+        print('False negative: ',(false_negative/tot_positives)*100)
+
+        fig = plt.figure()
+        ax = fig.subplots()
+        values = np.zeros((2,2))
+        values[0][0] = (true_positive/tot_positives)*100
+        values[0][1] = (false_positive/tot_negatives)*100
+        values[1][1] = (true_negative/tot_negatives)*100
+        values[1][0] = (false_negative/tot_positives)*100
+
+        ax.matshow(values,cmap='Blues')
+        for (i, j), z in np.ndenumerate(values):
+            ax.text(j, i, str(np.round(z,2))+'%', ha='center', va='center')
+        
+        ax.set_xticks([0,1])
+        ax.set_yticks([0,1])
+        ax.set_xticklabels(['Object present','No object'])
+        ax.set_yticklabels(['Object present','No object'])
+        ax.xaxis.set_label_position('top')
+        plt.xlabel('Truth',fontweight='bold')
+        plt.ylabel('Prediction',fontweight='bold')
+        plt.show()
+
         return true_positive, false_positive, true_negative, false_negative

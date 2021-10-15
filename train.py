@@ -333,6 +333,8 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=200, calc_loss
     train_dataset = Yolo_dataset(config.train_label, config, train=True)
     val_dataset = Yolo_dataset(config.val_label, config, train=False)
 
+    custom_anchors = [14,22, 25,50, 39,57, 51,75, 52,76, 63,105, 72,125, 112,268, 135,306]
+
     n_train = len(train_dataset)
 
     log_step = int(n_train/config.batch/5) # Evaluate validation loss 5 times per epoch
@@ -458,7 +460,7 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=200, calc_loss
 
             # Create a model 
             with torch.no_grad():
-                model_eval = Yolov4(yolov4conv137weight=None,n_classes=config.classes,inference=True)
+                model_eval = Yolov4(yolov4conv137weight=None,n_classes=config.classes,inference=True,anchors=custom_anchors)
                 model_eval.eval()
                 device = torch.device('cuda')
                 model_eval.load_state_dict(model.state_dict())
@@ -484,26 +486,31 @@ def get_args(**kwargs):
 if __name__ == '__main__':
     cfg = get_args(**Cfg)
 
+    original_anchors = [12, 16, 19, 36, 40, 28, 36, 75, 76, 55, 72, 146, 142, 110, 192, 243, 459, 401]
+    visdrone_anchors=[7, 11, 12, 21, 16, 32, 22, 35, 33, 48, 36, 67, 48, 71, 79, 100, 94, 168]
+    sard_anchors = [21,34,29,39,49,60,52,61,71,78,91,110,97,125,151,160,290,173]
+    custom_anchors = [14,22, 25,50, 39,57, 51,75, 52,76, 63,105, 72,125, 112,268, 135,306]
+
     # Fine tuning starting from yolo pretrained weights
-    weight_path = r'C:\Users\Melgani\Desktop\master_degree\trained_weights\all_datasets\all_datasets800.pth'
+    weight_path = r'C:\Users\Melgani\Desktop\master_degree\weight\yolov4.pth'
     device = torch.device('cuda')
     # Creating the empty model
-    model = Yolov4(yolov4conv137weight=None,n_classes=1)
+    model = Yolov4(yolov4conv137weight=None,n_classes=1,anchors=custom_anchors)
     # Fusing dictionaries of weights, all the weights except the heads 
-    #new_dictionary = {}
+    new_dictionary = {}
     weight_dictionary = torch.load(weight_path)
-    # for key, value in weight_dictionary.items():
-    #     if(not ('head.conv2' in key or 'head.conv10' in key or 'head.conv18' in key)):
-    #         new_dictionary[key]=value
+    for key, value in weight_dictionary.items():
+        if(not ('head.conv2' in key or 'head.conv10' in key or 'head.conv18' in key)):
+            new_dictionary[key]=value
     
-    # #Add the remaining keys
-    # model_dict = model.state_dict()
-    # for key, value in model_dict.items():
-    #     if (not key in new_dictionary.keys()):
-    #         new_dictionary[key] = value
+    #Add the remaining keys
+    model_dict = model.state_dict()
+    for key, value in model_dict.items():
+        if (not key in new_dictionary.keys()):
+            new_dictionary[key] = value
 
     # Loading the dict 
-    model.load_state_dict(weight_dictionary)
+    model.load_state_dict(new_dictionary)
     model.to(device=device)
     
     tot_epochs = 0
@@ -513,8 +520,8 @@ if __name__ == '__main__':
     for name, param in model.named_parameters():
         param.requires_grad = True
     
-    cfg.learning_rate = 0.0005
-    cfg.TRAIN_EPOCHS = 80
+    cfg.learning_rate = 0.00005
+    cfg.TRAIN_EPOCHS = 160
     tot_epochs+=cfg.TRAIN_EPOCHS
 
     val_ap_list, loss_list, val_loss_list = train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True,evaluate_averages=True)
@@ -525,8 +532,8 @@ if __name__ == '__main__':
         if(not 'head' in name):
             param.requires_grad = False
     
-    cfg.learning_rate = 0.0001
-    cfg.TRAIN_EPOCHS = 20
+    cfg.learning_rate = 0.00001
+    cfg.TRAIN_EPOCHS = 40
     tot_epochs+=cfg.TRAIN_EPOCHS
 
     val_ap_list, loss_list, val_loss_list = train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True, evaluate_averages=True, val_ap_list=val_ap_list,loss_list=loss_list,val_loss_list=val_loss_list)
