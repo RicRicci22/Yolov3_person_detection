@@ -399,17 +399,17 @@ class Yolov4Head(nn.Module):
         x18 = self.conv18(x17)
         
         if self.inference:
-            print(x2.shape)
-            objectness = x2[:,16,:,:]
-            classscore = x2[:,17,:,:]
-            objectness = objectness
-            #print(objectness.shape)
-            objectness = torch.reshape(objectness,(100,100))
-            classscore = torch.reshape(classscore,(100,100))
-            objectness=objectness*classscore
-            objectness = objectness.cpu().detach().numpy()
-            plt.matshow(objectness,cmap='Reds',vmin=0,vmax=1)
-            plt.show()
+            # print(x2.shape)
+            # objectness = x2[:,16,:,:]
+            # classscore = x2[:,17,:,:]
+            # objectness = objectness
+            # #print(objectness.shape)
+            # objectness = torch.reshape(objectness,(100,100))
+            # classscore = torch.reshape(classscore,(100,100))
+            # objectness=objectness*classscore
+            # objectness = objectness.cpu().detach().numpy()
+            # plt.matshow(objectness,cmap='Reds',vmin=0,vmax=1)
+            # plt.show()
             y1 = self.yolo1(x2)
             y2 = self.yolo2(x10)
             y3 = self.yolo3(x18)

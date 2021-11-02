@@ -460,14 +460,14 @@ def train(model, device, config, epochs=5, save_cp=True, log_step=200, calc_loss
 
             # Create a model 
             with torch.no_grad():
-                model_eval = Yolov4(yolov4conv137weight=None,n_classes=config.classes,inference=True,anchors=custom_anchors)
+                model_eval = Yolov4(yolov4conv137weight=None,n_classes=config.classes,inference=True,anchors=sard_anchors)
                 model_eval.eval()
                 device = torch.device('cuda')
                 model_eval.load_state_dict(model.state_dict())
                 model_eval.to(device=device)
                 detector = Detector(model_eval,True,config.width,config.height,config.val_dataset_dir,keep_aspect_ratio=False)
                 metric_obj = Metric(config.val_label,config.val_dataset_dir)
-                pred,_ = detector.detect_in_images(0.01)
+                pred,_ = detector.detect_in_images(0.05)
                 confidence_steps = [0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1]
                 values = metric_obj.calculate_precision_recall_f1_lists(pred,confidence_steps,0.5)
                 # AP calc.
@@ -495,7 +495,7 @@ if __name__ == '__main__':
     weight_path = r'C:\Users\Melgani\Desktop\master_degree\weight\yolov4.pth'
     device = torch.device('cuda')
     # Creating the empty model
-    model = Yolov4(yolov4conv137weight=None,n_classes=1,anchors=custom_anchors)
+    model = Yolov4(yolov4conv137weight=None,n_classes=1,anchors=sard_anchors)
     # Fusing dictionaries of weights, all the weights except the heads 
     new_dictionary = {}
     weight_dictionary = torch.load(weight_path)
@@ -520,11 +520,11 @@ if __name__ == '__main__':
     for name, param in model.named_parameters():
         param.requires_grad = True
     
-    cfg.learning_rate = 0.00005
-    cfg.TRAIN_EPOCHS = 160
+    cfg.learning_rate = 0.0005
+    cfg.TRAIN_EPOCHS = 180
     tot_epochs+=cfg.TRAIN_EPOCHS
 
-    val_ap_list, loss_list, val_loss_list = train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True,evaluate_averages=True)
+    val_ap_list, loss_list, val_loss_list = train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True,evaluate_averages=False)
     
     # SECOND PHASE
     print('Freezing backbone and neck layers..')
@@ -532,11 +532,11 @@ if __name__ == '__main__':
         if(not 'head' in name):
             param.requires_grad = False
     
-    cfg.learning_rate = 0.00001
-    cfg.TRAIN_EPOCHS = 40
+    cfg.learning_rate = 0.0001
+    cfg.TRAIN_EPOCHS = 20
     tot_epochs+=cfg.TRAIN_EPOCHS
 
-    val_ap_list, loss_list, val_loss_list = train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True, evaluate_averages=True, val_ap_list=val_ap_list,loss_list=loss_list,val_loss_list=val_loss_list)
+    val_ap_list, loss_list, val_loss_list = train(model=model,config=cfg,epochs=cfg.TRAIN_EPOCHS,device=device,calc_loss_validation=True, save_cp=True, evaluate_averages=False, val_ap_list=val_ap_list,loss_list=loss_list,val_loss_list=val_loss_list)
 
     # Saving the weights 
     save_path = os.path.join(cfg.savings_path, f'{cfg.dataset_name}{cfg.width}.pth')

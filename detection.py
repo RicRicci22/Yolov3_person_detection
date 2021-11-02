@@ -99,7 +99,7 @@ class Detector:
             if(os.path.isfile(f)):
                 # Is the file an image??
                 if(filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif'))):
-                    print(filename)
+                    #print(filename)
                     #print(filename)
                     img = cv2.imread(os.path.join(self.testset,filename))
                     original_height, original_width, _ = img.shape

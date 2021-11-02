@@ -19,7 +19,7 @@ dataset_path = r'datasets\custom\test'
 # model.activate_gpu()
 # Creating the model
 original_yolo = Yolov4(yolov4conv137weight=None,n_classes=1,inference=True,anchors=custom_anchors)
-original_yolo.load_weights(r'C:\Users\Melgani\Desktop\master_degree\trained_weights\custom800.pth')
+original_yolo.load_weights(r'C:\Users\Melgani\Desktop\master_degree\trained_weights\all_datasets\finetuned_custom\100_epochs\custom800.pth')
 original_yolo.activate_gpu()
 
 original_yolo2 = Yolov4(yolov4conv137weight=None,n_classes=80,inference=True,anchors=original_anchors)
@@ -34,6 +34,8 @@ ax = fig.subplots()
 
 #confidence_steps = [0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.20,0.15,0.10,0.05]
 confidence_steps = [i/100 for i in range(99,1,-1)]
+print(confidence_steps[49])
+print(confidence_steps[24])
 # Creating the detector
 #yolov4_detector = Detector(model,True,800,800,dataset_path,keep_aspect_ratio=False)
 for resolution in resolutions:
@@ -51,37 +53,31 @@ for resolution in resolutions:
     # Inserting zeros and ones in lists 
     precisions = values2[0]
     recalls = values2[1]
-    print('AP:',str(metrica.calc_AP(precisions,recalls)))
-    print('Recall ',np.round(np.mean(recalls),3))
-    ax.plot(values2[2],zorder=1)
-    ax.scatter(argmax(values2[2]),max(values2[2]),color='Yellow',zorder=2,label='Confidence '+str(confidence_steps[argmax(values2[2])]))
+
+    # print('AP:',str(metrica.calc_AP(precisions,recalls)))
+    # print('Recall ',np.round(np.mean(recalls),3))
+    #ax.plot(values2[2],zorder=1)
+    #ax.scatter(argmax(values2[2]),max(values2[2]),color='Yellow',zorder=2,label='Confidence '+str(confidence_steps[argmax(values2[2])]))
     # precisions.insert(0,1)
     # precisions.append(0)
     # recalls.insert(0,0)
     # recalls.append(1)
 
-    # precisions2 = values2[0]
-    # #print(precisions2[0])
-    # if(precisions2[0]==0):
-    #     precisions2[0]=precisions2[2]
-    #     precisions2[1]=precisions2[2]
-    # recalls2 = values2[1]
-    # plt.plot(recalls2,precisions2,zorder=1)
-    # if(resolution==800):
-    #     plt.scatter(recalls2[49],precisions2[49],color='Red',s=50,zorder=2,label='confidence=0.5')
-    #     plt.scatter(recalls2[24],precisions2[24],color='Yellow',s=50,zorder=2,label='confidence=0.75')
-    # else:
-    #     plt.scatter(recalls2[49],precisions2[49],color='Red',s=50,zorder=2)
-    #     plt.scatter(recalls2[24],precisions2[24],color='Yellow',s=50,zorder=2)
-    #print('AP:',str(metrica.calc_AP(precisions2,recalls2)))
-    #print('Recall ',np.round(np.mean(recalls2),3))
+    plt.plot(recalls,precisions,zorder=1)
+    if(resolution==800):
+        plt.scatter(recalls[49],precisions[49],color='Red',s=50,zorder=2,label='confidence=0.5')
+        plt.scatter(recalls[24],precisions[24],color='Yellow',s=50,zorder=2,label='confidence=0.75')
+    else:
+        plt.scatter(recalls[49],precisions[49],color='Red',s=50,zorder=2)
+        plt.scatter(recalls[24],precisions[24],color='Yellow',s=50,zorder=2)
 
-plt.xlabel('Confidence')
-plt.ylabel('F1 score')
-ax.set_xticks([i*3 for i in range(33)])
-ax.set_xticklabels([i/100 for i in range(99,1,-3)],rotation=40)
-plt.legend()
-plt.show()
+
+# plt.xlabel('Confidence')
+# plt.ylabel('F1 score')
+# ax.set_xticks([i*3 for i in range(33)])
+# ax.set_xticklabels([i/100 for i in range(99,1,-3)],rotation=40)
+# plt.legend()
+# plt.show()
 # precisions2.insert(0,1)
 # precisions2.append(0)
 # recalls2.insert(0,0)
@@ -106,10 +102,10 @@ plt.show()
 
 
 #ax.plot(values2[0],values2[1],label='asd')
-# plt.xlabel('Recall')
-# plt.ylabel('Precision')
-# plt.legend()
-# plt.tight_layout()
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+plt.legend()
+plt.tight_layout()
 
 
-# plt.show()
+plt.show()
